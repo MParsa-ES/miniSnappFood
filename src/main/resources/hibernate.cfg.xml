@@ -1,0 +1,32 @@
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+    <session-factory>
+
+        <!-- 1. Dialect: tells Hibernate how to generate SQL for SQLite -->
+        <property name="hibernate.dialect">org.hibernate.community.dialect.SQLiteDialect</property>
+
+        <!-- 2. JDBC driver class (SQLite) -->
+        <property name="hibernate.connection.driver_class">org.sqlite.JDBC</property>
+
+        <!-- 3. JDBC URL: path to your SQLite file -->
+        <property name="hibernate.connection.url">jdbc:sqlite:data.db</property>
+
+        <!-- 4. Optional: if needed (not needed for SQLite) -->
+        <!-- <property name="hibernate.connection.username">your-username</property> -->
+        <!-- <property name="hibernate.connection.password">your-password</property> -->
+
+        <!-- 5. Schema auto-generation:
+             - update: creates/migrates tables without deleting data
+             - create: recreates schema every time (⚠️ deletes data!)
+             - validate: checks schema matches your entity classes
+        -->
+        <property name="hibernate.hbm2ddl.auto">update</property>
+
+        <!-- 6. Show SQL queries in the console -->
+        <property name="hibernate.show_sql">true</property>
+
+    </session-factory>
+</hibernate-configuration>

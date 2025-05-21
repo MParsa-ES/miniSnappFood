@@ -29,6 +29,8 @@
         <property name="hibernate.show_sql">true</property>
 
         <mapping class="entity.User"/>
+        <mapping class="entity.Profile" />
+        <mapping class="entity.BankInfo" />
 
     </session-factory>
 </hibernate-configuration>

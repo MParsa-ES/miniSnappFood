@@ -20,10 +20,7 @@ public class User {
     private Long id;
 
     @Column(unique = false, nullable = false)
-    private String name;
-
-    @Column(unique = false, nullable = false)
-    private String familyName;
+    private String fullName;
 
     @Column(unique = true, nullable = false)
     private String phone;
@@ -42,16 +39,15 @@ public class User {
     @Column(unique = false, nullable = false)
     private String address;
 
-//    @OneToOne(cascade = CascadeType.ALL)
-//    @JoinColumn(name = "profile_id", nullable = false)
-//    private Profile profile;
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "profile_id" , nullable = true)
+    private Profile profile;
 
     public User(){}
 
 
     public User(String name, String familyName, String phone, String email, String password, Role role, String address) {
-        this.name = name;
-        this.familyName = familyName;
+        this.fullName = name;
         this.phone = phone;
         this.email = email;
         this.password = password;

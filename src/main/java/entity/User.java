@@ -12,12 +12,12 @@ enum Role {
 @Entity
 @Getter
 @Setter
-@Table(name = "Users")
+@Table(name = "User")
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long userId;
+    private Long id;
 
     @Column(unique = false, nullable = false)
     private String name;
@@ -40,7 +40,11 @@ public class User {
     @Column(unique = false, nullable = false)
     private String address;
 
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "profile_id", nullable = false)
+    private Profile profile;
 
+    public User(){}
 
 
     public User(String name, String familyName, String phone, String email, String password, Role role, String address) {

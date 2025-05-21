@@ -47,7 +47,7 @@ public class UserHTTPHandler implements HttpHandler {
                  os.write(responese.getBytes());
              } catch (IOException e) {
                  e.printStackTrace();
-`
+
              }
 
         }

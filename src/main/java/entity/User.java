@@ -12,8 +12,8 @@ enum Role {
 @Entity
 @Getter
 @Setter
-@Table(name = "Users")
-public class Member {
+@Table(name = "User")
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,14 +34,20 @@ public class Member {
     @Column(unique = false, nullable = false)
     private String password;
 
+    @Enumerated(EnumType.STRING)
     @Column(unique = false, nullable = false)
     private Role role;
 
     @Column(unique = false, nullable = false)
     private String address;
 
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "profile_id", nullable = false)
+    private Profile profile;
 
-    public Member(String name, String familyName, String phone, String email, String password, Role role, String address) {
+    public User(){}
+
+    public User(String name, String familyName, String phone, String email, String password, Role role, String address) {
         this.name = name;
         this.familyName = familyName;
         this.phone = phone;

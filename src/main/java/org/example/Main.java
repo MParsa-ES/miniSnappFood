@@ -12,8 +12,7 @@ public class Main {
 
 
         HttpServer server = HttpServer.create(new InetSocketAddress(8080),0);
-        server.createContext("/auth/register",new UserHTTPHandler());
-        server.createContext("/auth/login",new UserHTTPHandler());
+        server.createContext("/auth",new UserHTTPHandler());
         server.start();
         System.out.println("Server started on http://localhost:8080");
     }

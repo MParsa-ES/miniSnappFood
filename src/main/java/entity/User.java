@@ -34,15 +34,17 @@ public class User {
     @Column(unique = false, nullable = false)
     private String password;
 
-    @Column(unique = false, nullable = false)
+    @Enumerated(EnumType.STRING) // Store enum as a readable string
+    @Column(nullable = true)
     private Role role;
+
 
     @Column(unique = false, nullable = false)
     private String address;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "profile_id", nullable = false)
-    private Profile profile;
+//    @OneToOne(cascade = CascadeType.ALL)
+//    @JoinColumn(name = "profile_id", nullable = false)
+//    private Profile profile;
 
     public User(){}
 

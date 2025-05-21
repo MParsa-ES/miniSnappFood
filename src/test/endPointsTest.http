@@ -3,52 +3,10 @@ POST http://localhost:8080/auth/register
 Content-Type: application/json
 
 {
-  "username": "alice2",
-  "password": "alicepass"
-}
-
-### 2. Log In
-POST http://localhost:8080/user/login
-Content-Type: application/json
-
-{
-  "username": "alice2",
-  "password": "alicepass"
-}
-
-### 3. Create a Chat
-@AUTH_TOKEN = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbGljZSIsImlhdCI6MTc0NjkxMTg4NCwiZXhwIjoxNzQ2OTIyNjg0fQ.U09De5eUW51pCakp72KNGv_tq1XO085jY1osARe3nTU
-POST http://localhost:8080/chat
-Content-Type: application/json
-Authorization: {{AUTH_TOKEN}}
-
-{
-  "name": "Test Group",
-  "type": "group",
-  "ownerId": 1
-}
-
-### 4. Add Member to Chat
-POST http://localhost:8080/chatmember
-Content-Type: application/json
-Authorization: {{AUTH_TOKEN}}
-
-{
-  "chatId": 1,
-  "userId": 2,
-  "role": "member"
-}
-
-### 5. Get Own Profile
-GET http://localhost:8080/profile
-Authorization: {{AUTH_TOKEN}}
-
-### 6. Update Own Profile
-PUT http://localhost:8080/profile
-Content-Type: application/json
-Authorization: {{AUTH_TOKEN}}
-
-{
-  "displayName": "Alice",
-  "profilePicture": "https://example.com/alice.jpg"
+  "name": "alice2",
+  "familyName": "alicepass",
+  "phone": "12345",
+  "email": "",
+  "password": "1234",
+  "address": "1324"
 }

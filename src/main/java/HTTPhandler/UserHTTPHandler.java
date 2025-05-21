@@ -7,6 +7,7 @@ import entity.User;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import util.HibernateUtil;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -20,9 +21,9 @@ public class UserHTTPHandler implements HttpHandler {
         if (exchange.getRequestMethod().equals("POST")) {
             String urlPath = exchange.getRequestURI().getPath();
             if (urlPath.equals("/auth/register")) {
-                hadnleLogin(exchange);
+                handleSignUp(exchange);
             } else if (urlPath.equals("/auth/login")) {
-                hadnleLogin(exchange);
+                handleLogin(exchange);
             } else {
                 exchange.sendResponseHeaders(400, -1); // Not Found
             }
@@ -31,36 +32,37 @@ public class UserHTTPHandler implements HttpHandler {
         }
     }
 
-    private void hadnleSignUp(HttpExchange exchange) throws IOException {
+    private void handleSignUp(HttpExchange exchange) throws IOException {
         InputStreamReader data = new InputStreamReader(exchange.getRequestBody());
 
         User user = new Gson().fromJson(data, User.class);
 
-        try(Session session = HibernateUtil.getSessionFactory().openSession()) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Transaction transaction = session.beginTransaction();
 
             session.save(user);
             // add Profile and save it
             transaction.commit();
 
-            Map<String,String> response = new HashMap<>();
+            Map<String, String> response = new HashMap<>();
             response.put("message", "User registered successfully");
             response.put("userId", "" + user.getId());
-            response.put("token","example token"); // should create token at later stage
+            response.put("token", "example token"); // should create token at later stage
             String json = new Gson().toJson(response);
             exchange.sendResponseHeaders(200, json.getBytes().length);
-             try (OutputStream os = exchange.getResponseBody()) {
-                 os.write(json.getBytes());
-             } catch (Exception e) {
-                 e.printStackTrace();
-                 String message = "Failed to save user";
-                 exchange.sendResponseHeaders(500, message.getBytes().length); // internal server error
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(json.getBytes());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            String response = "Failed to save user";
+            exchange.sendResponseHeaders(500, response.getBytes().length); // internal server error
 
-             }
         }
+
     }
 
-    private void hadnleLogin(HttpExchange exchange) throws IOException {
+    private void handleLogin(HttpExchange exchange) throws IOException {
         InputStreamReader data = new InputStreamReader(exchange.getRequestBody());
 
     }

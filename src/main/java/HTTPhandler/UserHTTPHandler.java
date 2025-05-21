@@ -46,7 +46,7 @@ public class UserHTTPHandler implements HttpHandler {
             Map<String,String> response = new HashMap<>();
             response.put("message", "User registered successfully");
             response.put("userId", "" + user.getId());
-            response.put("token","example token");
+            response.put("token","example token"); // should create token at later stage
             String json = new Gson().toJson(response);
             exchange.sendResponseHeaders(200, json.getBytes().length);
              try (OutputStream os = exchange.getResponseBody()) {
@@ -57,7 +57,6 @@ public class UserHTTPHandler implements HttpHandler {
                  exchange.sendResponseHeaders(500, message.getBytes().length); // internal server error
 
              }
-
         }
     }
 

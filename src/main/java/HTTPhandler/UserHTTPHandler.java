@@ -10,6 +10,8 @@ import util.HibernateUtil;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 public class UserHTTPHandler implements HttpHandler {
 
@@ -41,12 +43,18 @@ public class UserHTTPHandler implements HttpHandler {
             // add Profile and save it
             transaction.commit();
 
-            String responese = "User registered successfully";
-            exchange.sendResponseHeaders(200, responese.length());
+            Map<String,String> response = new HashMap<>();
+            response.put("message", "User registered successfully");
+            response.put("userId", "" + user.getId());
+            response.put("token","example token");
+            String json = new Gson().toJson(response);
+            exchange.sendResponseHeaders(200, json.getBytes().length);
              try (OutputStream os = exchange.getResponseBody()) {
-                 os.write(responese.getBytes());
-             } catch (IOException e) {
+                 os.write(json.getBytes());
+             } catch (Exception e) {
                  e.printStackTrace();
+                 String message = "Failed to save user";
+                 exchange.sendResponseHeaders(500, message.getBytes().length); // internal server error
 
              }
 
@@ -59,9 +67,9 @@ public class UserHTTPHandler implements HttpHandler {
     }
 
 //    private boolean isPhoneNumberTaken(Session session, String phone) {
-//        User member = session.createQuery("from User where phone = :phone", User.class)
+//        User user = session.createQuery("from user where phone = :phone", User.class)
 //                .setParameter("phone", phone)
 //                .uniqueResult();
-//        return member != null;
+//        return user != null;
 //    }
 }

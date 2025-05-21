@@ -13,11 +13,11 @@ enum Role {
 @Getter
 @Setter
 @Table(name = "Users")
-public class Member {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long userId;
 
     @Column(unique = false, nullable = false)
     private String name;
@@ -41,7 +41,9 @@ public class Member {
     private String address;
 
 
-    public Member(String name, String familyName, String phone, String email, String password, Role role, String address) {
+
+
+    public User(String name, String familyName, String phone, String email, String password, Role role, String address) {
         this.name = name;
         this.familyName = familyName;
         this.phone = phone;

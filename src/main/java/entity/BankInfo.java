@@ -3,7 +3,7 @@ package entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "Bank info")
+@Table(name = "BankInfo")
 public class BankInfo {
 
     @Id
@@ -16,15 +16,14 @@ public class BankInfo {
     @Column
     private String AccountNumber;
 
-    @OneToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private Member member;
+    @OneToOne (mappedBy = "bankInfo")
+    private Profile profile;
+
 
     public BankInfo() {}
 
-    public BankInfo(String BankName, String AccountNumber , Member member) {
+    public BankInfo(String BankName, String AccountNumber) {
         this.BankName = BankName;
         this.AccountNumber = AccountNumber;
-        this.member = member;
     }
 }

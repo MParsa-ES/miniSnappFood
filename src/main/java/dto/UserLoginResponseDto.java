@@ -19,5 +19,14 @@ public class UserLoginResponseDto {
         private String email;
         private String role;
         private String address;
+        private String profileImageBase64;
+        private BankInfoDto bank_info;
+
+        @Getter
+        @Setter
+        public static class BankInfoDto {
+            private String bank_name;
+            private String account_number;
+        }
     }
 }

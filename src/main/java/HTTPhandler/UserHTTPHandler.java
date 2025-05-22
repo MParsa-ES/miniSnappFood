@@ -117,6 +117,20 @@ public class UserHTTPHandler implements HttpHandler {
             userData.setEmail(user.getEmail());
             userData.setRole(user.getRole().toString());
             userData.setAddress(user.getAddress());
+
+
+            // Setting the profile image and bank info of the login response dto
+            if (user.getProfile() != null) {
+                userData.setProfileImageBase64(user.getProfile().getProfilePicture());
+
+                if (user.getProfile().getBankInfo() != null){
+                    UserLoginResponseDto.UserData.BankInfoDto bankInfoDto = new UserLoginResponseDto.UserData.BankInfoDto();
+                    bankInfoDto.setBank_name(user.getProfile().getBankInfo().getBankName());
+                    bankInfoDto.setAccount_number(user.getProfile().getBankInfo().getAccountNumber());
+                    userData.setBank_info(bankInfoDto);
+                }
+            }
+
             responseDto.setUser(userData);
 
             String json = gson.toJson(responseDto);

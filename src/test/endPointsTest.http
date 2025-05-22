@@ -3,19 +3,24 @@ POST http://localhost:8080/auth/register
 Content-Type: application/json
 
 {
-  "fullName": "parsa esmaeili",
-  "phone": "14",
-  "email": "",
-  "password": "1234",
-  "address": "1324",
-  "role": "BUYER"
+  "full_name": "string",
+  "phone": "string",
+  "email": "user@example.com",
+  "password": "string",
+  "role": "buyer",
+  "address": "string",
+  "profileImageBase64": "string",
+  "bank_info": {
+    "bank_name": "string",
+    "account_number": "string"
+  }
 }
 ### 2. Login a user
 POST http://localhost:8080/auth/login
 Content-Type: application/json
 
 {
-  "phone":"14",
-  "password": "1234"
+  "phone":"string",
+  "password": "string"
 }
 

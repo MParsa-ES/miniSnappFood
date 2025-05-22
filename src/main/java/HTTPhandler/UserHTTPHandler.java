@@ -1,129 +1,186 @@
 package HTTPhandler;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import dto.*;
+import entity.BankInfo;
+import entity.Profile;
 import entity.User;
+import entity.Role;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import util.HibernateUtil;
-
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.util.HashMap;
-import java.util.Map;
 
 public class UserHTTPHandler implements HttpHandler {
 
+    private final Gson gson = new GsonBuilder().serializeNulls().create();
+
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        if (exchange.getRequestMethod().equals("POST")) {
-            String urlPath = exchange.getRequestURI().getPath();
-            if (urlPath.equals("/auth/register")) {
-                handleSignUp(exchange);
-            } else if (urlPath.equals("/auth/login")) {
+        if ("POST".equals(exchange.getRequestMethod())) {
+            String path = exchange.getRequestURI().getPath();
+
+            if (path.equals("/auth/register")) {
+                handleRegister(exchange);
+            } else if (path.equals("/auth/login")) {
                 handleLogin(exchange);
             } else {
-                exchange.sendResponseHeaders(400, -1); // Not Found
+                sendResponse(exchange, 404, "{\"error\":\"Not found\"}");
             }
         } else {
-            exchange.sendResponseHeaders(405, -1); // Method not allowed
+            sendResponse(exchange, 405, "{\"error\":\"Method not allowed\"}");
         }
     }
 
-    private void handleSignUp(HttpExchange exchange) throws IOException {
-        InputStreamReader data = new InputStreamReader(exchange.getRequestBody());
+    private void handleRegister(HttpExchange exchange) throws IOException {
+        InputStreamReader reader = new InputStreamReader(exchange.getRequestBody());
+        UserRegisterRequestDto requestDto = new Gson().fromJson(reader, UserRegisterRequestDto.class);
 
-        User user = new Gson().fromJson(data, User.class);
+        if (requestDto.getFull_name() == null || requestDto.getPhone() == null ||
+                requestDto.getPassword() == null || requestDto.getRole() == null ||
+                requestDto.getAddress() == null) {
+            sendResponse(exchange, 400, "{\"error\":\"Invalid input\"}");
+            return;
+        }
+
+        Role role;
+        try {
+            role = Role.valueOf(requestDto.getRole().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            sendResponse(exchange, 400, "{\"error\":\"Invalid input\"}");
+            return;
+        }
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-
-            if (isPhoneNumberTaken(session, user.getPhone())){
-                String response = "Phone number already exists";
-                exchange.sendResponseHeaders(409, response.getBytes().length);
-                try(OutputStream os = exchange.getResponseBody()){
-                    os.write(response.getBytes());
-                }
+            if (isPhoneTaken(session, requestDto.getPhone())) {
+                sendResponse(exchange, 409, "{\"error\":\"Phone number already exists\"}");
                 return;
             }
 
             Transaction transaction = session.beginTransaction();
 
-            try {
-                session.save(user);
-            } catch (Exception e) {
-                String response = "Invalid input data";
-                exchange.sendResponseHeaders(400, response.getBytes().length);
-                try(OutputStream os = exchange.getResponseBody()){
-                    os.write(response.getBytes());
-                }
-            }
-            // add Profile and save it
+            User user = getUser(requestDto, role);
+
+
+            session.save(user);
+
             transaction.commit();
 
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "User registered successfully");
-            response.put("userId", "" + user.getId());
-            response.put("token", "example token"); // should create token at later stage
-            String json = new Gson().toJson(response);
+
+            UserRegisterResponseDto responseDto = new UserRegisterResponseDto();
+            responseDto.setMessage("User registered successfully");
+            responseDto.setUser_id(user.getId().toString());
+            responseDto.setToken("example-token"); // TODO: Implement real token generation
+
+            String jsonResponse = gson.toJson(responseDto);
+            sendResponse(exchange, 200, jsonResponse);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}");
+        }
+    }
+
+    private void handleLogin(HttpExchange exchange) throws IOException {
+        InputStreamReader reader = new InputStreamReader(exchange.getRequestBody());
+        UserLoginRequestDto dto = new Gson().fromJson(reader, UserLoginRequestDto.class);
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            User user = session.createQuery("from User where phone = :phone", User.class)
+                    .setParameter("phone", dto.getPhone())
+                    .uniqueResult();
+
+            if (user == null || !user.getPassword().equals(dto.getPassword())) {
+
+                ErrorResponseDto error = new ErrorResponseDto("Invalid phone or password");
+                String response = new Gson().toJson(error);
+                exchange.sendResponseHeaders(401, response.getBytes().length);
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes());
+                }
+                return;
+            }
+
+
+            UserLoginResponseDto responseDto = new UserLoginResponseDto();
+            responseDto.setMessage("User logged in successfully");
+            responseDto.setToken("example-token"); //TODO generate a token later
+
+            UserLoginResponseDto.UserData userData = new UserLoginResponseDto.UserData();
+            userData.setId(String.valueOf(user.getId()));
+            userData.setFull_name(user.getFullName());
+            userData.setPhone(user.getPhone());
+            userData.setEmail(user.getEmail());
+            userData.setRole(user.getRole().toString());
+            userData.setAddress(user.getAddress());
+            responseDto.setUser(userData);
+
+            String json = new Gson().toJson(responseDto);
             exchange.sendResponseHeaders(200, json.getBytes().length);
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(json.getBytes());
             }
         } catch (Exception e) {
             e.printStackTrace();
-            String response = "Failed to save user";
-            exchange.sendResponseHeaders(500, response.getBytes().length); // internal server error
+            ErrorResponseDto error = new ErrorResponseDto("Login failed due to server error");
+            String response = new Gson().toJson(error);
+            exchange.sendResponseHeaders(500, response.getBytes().length);
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(response.getBytes());
             }
         }
     }
 
-    private void handleLogin(HttpExchange exchange) throws IOException {
-        InputStreamReader data = new InputStreamReader(exchange.getRequestBody());
-        User loginUser = new Gson().fromJson(data, User.class);
+    private User getUser(UserRegisterRequestDto requestDto, Role role) {
+        User user = new User();
+        user.setFullName(requestDto.getFull_name());
+        user.setPhone(requestDto.getPhone());
+        user.setEmail(requestDto.getEmail());
+        user.setPassword(requestDto.getPassword());
+        user.setRole(role);
+        user.setAddress(requestDto.getAddress());
 
 
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            User currentUser = getUserByPhone(session, loginUser.getPhone());
-
-            if (currentUser == null || !loginUser.getPassword().equals(currentUser.getPassword())) {
-                String response = "Invalid phone or password";
-                exchange.sendResponseHeaders(400, response.getBytes().length);
-                try(OutputStream os = exchange.getResponseBody()){
-                    os.write(response.getBytes());
-                }
-                return;
-            }
-            
-
-            // should generate token
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "User logged in successfully");
-            response.put("token", "example token");
-            response.put("user", "sa");
-            String json = new Gson().toJson(response);
-            exchange.sendResponseHeaders(200, json.getBytes().length);
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(json.getBytes());
-            }
+        BankInfo bankInfo = null;
+        if (requestDto.getBank_info() != null) {
+            bankInfo = new BankInfo();
+            bankInfo.setBankName(requestDto.getBank_info().getBank_name());
+            bankInfo.setAccountNumber(requestDto.getBank_info().getAccount_number());
 
         }
 
+
+        Profile profile = new Profile();
+        profile.setProfilePicture(requestDto.getProfileImageBase64());
+        profile.setBankInfo(bankInfo);
+
+
+        if (bankInfo != null) {
+            bankInfo.setProfile(profile);
+        }
+        profile.setUser(user);
+        user.setProfile(profile);
+        return user;
     }
 
-    private boolean isPhoneNumberTaken(Session session, String phone) {
-        User user = session.createQuery("from User where phone = :phone", User.class)
+    private boolean isPhoneTaken(Session session, String phone) {
+        User existing = session.createQuery("from User where phone = :phone", User.class)
                 .setParameter("phone", phone)
                 .uniqueResult();
-        return user != null;
+        return existing != null;
     }
 
-    private User getUserByPhone(Session session, String phone) {
-        return session.createQuery("from User where phone = :phone",User.class)
-                .setParameter("phone",phone)
-                .uniqueResult();
+    private void sendResponse(HttpExchange exchange, int statusCode, String responseBody) throws IOException {
+        byte[] responseBodyBytes = responseBody.getBytes();
+        exchange.sendResponseHeaders(statusCode, responseBodyBytes.length);
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(responseBodyBytes);
+        }
     }
+
 }

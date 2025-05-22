@@ -3,10 +3,9 @@ package entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import entity.Role;
 
-enum Role {
-    BUYER, SELLER, COURIER
-}
+
 
 
 @Entity
@@ -19,35 +18,35 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = false, nullable = false)
+    @Column(nullable = false)
     private String fullName;
 
     @Column(unique = true, nullable = false)
     private String phone;
 
-    @Column(unique = false, nullable = true)
+    @Column()
     private String email;  // optional
 
-    @Column(unique = false, nullable = false)
+    @Column(nullable = false)
     private String password;
 
     @Enumerated(EnumType.STRING) // Store enum as a readable string
-    @Column(nullable = true)
+    @Column(nullable = false)
     private Role role;
 
 
-    @Column(unique = false, nullable = false)
+    @Column(nullable = false)
     private String address;
 
     @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "profile_id" , nullable = true)
+    @JoinColumn(name = "profile_id" , nullable = false)
     private Profile profile;
 
     public User(){}
 
 
-    public User(String name, String familyName, String phone, String email, String password, Role role, String address) {
-        this.fullName = name;
+    public User(String fullName, String phone, String email, String password, Role role, String address) {
+        this.fullName = fullName;
         this.phone = phone;
         this.email = email;
         this.password = password;

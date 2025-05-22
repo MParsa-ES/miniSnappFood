@@ -12,9 +12,11 @@ import entity.Role;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import util.HibernateUtil;
+import util.RateLimiter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+
 
 public class UserHTTPHandler implements HttpHandler {
 
@@ -22,6 +24,22 @@ public class UserHTTPHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
+
+        // Checking correct Header for content type
+        String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
+        if (contentType == null || !contentType.toLowerCase().contains("application/json")) {
+            sendResponse(exchange, 415, "{\n\"error\":\"Unsupported media type\"\n}");
+            return;
+        }
+
+        // Checking for Bot
+        String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
+        if (!RateLimiter.isAllowed(ip)){
+            sendResponse(exchange, 429, "{\n\"error\":\"Too many requests\"\n}");
+            return;
+        }
+
+
         if ("POST".equals(exchange.getRequestMethod())) {
             String path = exchange.getRequestURI().getPath();
 
@@ -43,8 +61,8 @@ public class UserHTTPHandler implements HttpHandler {
 
         if (requestDto.getFull_name() == null || requestDto.getPhone() == null ||
                 requestDto.getPassword() == null || requestDto.getRole() == null ||
-                requestDto.getAddress() == null) {
-            sendResponse(exchange, 400, "{\"error\":\"Invalid input\"}");
+                requestDto.getAddress() == null || (requestDto.getEmail() != null && !isValidEmail(requestDto.getEmail()))) {
+            sendResponse(exchange, 400, "{\n\"error\":\"Invalid `field name`\"\n}");
             return;
         }
 
@@ -52,7 +70,7 @@ public class UserHTTPHandler implements HttpHandler {
         try {
             role = Role.valueOf(requestDto.getRole().toUpperCase());
         } catch (IllegalArgumentException e) {
-            sendResponse(exchange, 400, "{\"error\":\"Invalid input\"}");
+            sendResponse(exchange, 400, "{\n\"error\":\"Invalid `field name`\"\n}");
             return;
         }
 
@@ -63,6 +81,14 @@ public class UserHTTPHandler implements HttpHandler {
             }
 
             Transaction transaction = session.beginTransaction();
+
+            // TODO check if the profileImage64 field address is invalid and return 404 not found code for it with "{\n\"error\":\"Resource not found\"\n}" message
+
+            // only sellers and buyers can have bank info
+            if (role == Role.BUYER && requestDto.getBank_info() != null) {
+                sendResponse(exchange, 403, "{\n\"error\":\"Forbidden request\"\n}");
+                return;
+            }
 
             User user = getUser(requestDto, role);
 
@@ -88,19 +114,24 @@ public class UserHTTPHandler implements HttpHandler {
 
     private void handleLogin(HttpExchange exchange) throws IOException {
         InputStreamReader reader = new InputStreamReader(exchange.getRequestBody());
-        UserLoginRequestDto dto = new Gson().fromJson(reader, UserLoginRequestDto.class);
+        UserLoginRequestDto requestDto = new Gson().fromJson(reader, UserLoginRequestDto.class);
+
+        if (requestDto.getPhone() == null || requestDto.getPassword() == null) {
+            sendResponse(exchange, 400, "{\n\"error\":\"Invalid `field name`\"\n}");
+        }
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             User user = session.createQuery("from User where phone = :phone", User.class)
-                    .setParameter("phone", dto.getPhone())
+                    .setParameter("phone", requestDto.getPhone())
                     .uniqueResult();
 
-            if (user == null || !user.getPassword().equals(dto.getPassword())) {
+            if (user == null || !user.getPassword().equals(requestDto.getPassword())) {
 
-                ErrorResponseDto error = new ErrorResponseDto("Invalid phone or password");
-                exchange.sendResponseHeaders(401, gson.toJson(error).getBytes().length);
+                ErrorResponseDto error = new ErrorResponseDto("Unauthorized request");
+                String response = gson.toJson(error);
+                exchange.sendResponseHeaders(401, response.getBytes().length);
                 try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(gson.toJson(error).getBytes());
+                    os.write(response.getBytes());
                 }
                 return;
             }
@@ -119,7 +150,7 @@ public class UserHTTPHandler implements HttpHandler {
             userData.setAddress(user.getAddress());
 
 
-            // Setting the profile image and bank info of the login response dto
+            // Setting the profile image and bank info of the login response requestDto
             if (user.getProfile() != null) {
                 userData.setProfileImageBase64(user.getProfile().getProfilePicture());
 
@@ -133,15 +164,15 @@ public class UserHTTPHandler implements HttpHandler {
 
             responseDto.setUser(userData);
 
-            String json = gson.toJson(responseDto);
-            exchange.sendResponseHeaders(200, json.getBytes().length);
+            String response = gson.toJson(responseDto);
+            exchange.sendResponseHeaders(200, response.getBytes().length);
             try (OutputStream os = exchange.getResponseBody()) {
-                os.write(json.getBytes());
+                os.write(response.getBytes());
             }
         } catch (Exception e) {
             e.printStackTrace();
-            ErrorResponseDto error = new ErrorResponseDto("Login failed due to server error");
-            String response = new Gson().toJson(error);
+            ErrorResponseDto error = new ErrorResponseDto("Internal server error");
+            String response = gson.toJson(error);
             exchange.sendResponseHeaders(500, response.getBytes().length);
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(response.getBytes());
@@ -194,6 +225,11 @@ public class UserHTTPHandler implements HttpHandler {
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(responseBodyBytes);
         }
+    }
+
+    private boolean isValidEmail(String email) {
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+        return email.matches(emailRegex);
     }
 
 }

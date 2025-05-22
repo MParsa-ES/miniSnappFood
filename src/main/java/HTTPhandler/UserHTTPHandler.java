@@ -12,9 +12,12 @@ import entity.Role;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import util.HibernateUtil;
+import util.JwtUtil;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 public class UserHTTPHandler implements HttpHandler {
 
@@ -65,17 +68,16 @@ public class UserHTTPHandler implements HttpHandler {
             Transaction transaction = session.beginTransaction();
 
             User user = getUser(requestDto, role);
-
-
             session.save(user);
 
             transaction.commit();
 
+            String token = JwtUtil.generateToken(user.getPhone());
 
             UserRegisterResponseDto responseDto = new UserRegisterResponseDto();
             responseDto.setMessage("User registered successfully");
             responseDto.setUser_id(user.getId().toString());
-            responseDto.setToken("example-token"); // TODO: Implement real token generation
+            responseDto.setToken(token);
 
             String jsonResponse = gson.toJson(responseDto);
             sendResponse(exchange, 200, jsonResponse);
@@ -87,7 +89,7 @@ public class UserHTTPHandler implements HttpHandler {
     }
 
     private void handleLogin(HttpExchange exchange) throws IOException {
-        InputStreamReader reader = new InputStreamReader(exchange.getRequestBody());
+        InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8);
         UserLoginRequestDto dto = new Gson().fromJson(reader, UserLoginRequestDto.class);
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
@@ -96,7 +98,6 @@ public class UserHTTPHandler implements HttpHandler {
                     .uniqueResult();
 
             if (user == null || !user.getPassword().equals(dto.getPassword())) {
-
                 ErrorResponseDto error = new ErrorResponseDto("Invalid phone or password");
                 exchange.sendResponseHeaders(401, gson.toJson(error).getBytes().length);
                 try (OutputStream os = exchange.getResponseBody()) {
@@ -105,10 +106,11 @@ public class UserHTTPHandler implements HttpHandler {
                 return;
             }
 
+            String token = JwtUtil.generateToken(user.getPhone());
 
             UserLoginResponseDto responseDto = new UserLoginResponseDto();
             responseDto.setMessage("User logged in successfully");
-            responseDto.setToken("example-token"); //TODO generate a token later
+            responseDto.setToken(token);
 
             UserLoginResponseDto.UserData userData = new UserLoginResponseDto.UserData();
             userData.setId(String.valueOf(user.getId()));
@@ -118,8 +120,6 @@ public class UserHTTPHandler implements HttpHandler {
             userData.setRole(user.getRole().toString());
             userData.setAddress(user.getAddress());
 
-
-            // Setting the profile image and bank info of the login response dto
             if (user.getProfile() != null) {
                 userData.setProfileImageBase64(user.getProfile().getProfilePicture());
 
@@ -158,20 +158,16 @@ public class UserHTTPHandler implements HttpHandler {
         user.setRole(role);
         user.setAddress(requestDto.getAddress());
 
-
         BankInfo bankInfo = null;
         if (requestDto.getBank_info() != null) {
             bankInfo = new BankInfo();
             bankInfo.setBankName(requestDto.getBank_info().getBank_name());
             bankInfo.setAccountNumber(requestDto.getBank_info().getAccount_number());
-
         }
-
 
         Profile profile = new Profile();
         profile.setProfilePicture(requestDto.getProfileImageBase64());
         profile.setBankInfo(bankInfo);
-
 
         if (bankInfo != null) {
             bankInfo.setProfile(profile);
@@ -195,5 +191,4 @@ public class UserHTTPHandler implements HttpHandler {
             os.write(responseBodyBytes);
         }
     }
-
 }

@@ -75,13 +75,42 @@ public class UserHTTPHandler implements HttpHandler {
             e.printStackTrace();
             String response = "Failed to save user";
             exchange.sendResponseHeaders(500, response.getBytes().length); // internal server error
-
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(response.getBytes());
+            }
         }
-
     }
 
     private void handleLogin(HttpExchange exchange) throws IOException {
         InputStreamReader data = new InputStreamReader(exchange.getRequestBody());
+        User loginUser = new Gson().fromJson(data, User.class);
+
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            User currentUser = getUserByPhone(session, loginUser.getPhone());
+
+            if (currentUser == null || !loginUser.getPassword().equals(currentUser.getPassword())) {
+                String response = "Invalid phone or password";
+                exchange.sendResponseHeaders(400, response.getBytes().length);
+                try(OutputStream os = exchange.getResponseBody()){
+                    os.write(response.getBytes());
+                }
+                return;
+            }
+            
+
+            // should generate token
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "User logged in successfully");
+            response.put("token", "example token");
+            response.put("user", "sa");
+            String json = new Gson().toJson(response);
+            exchange.sendResponseHeaders(200, json.getBytes().length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(json.getBytes());
+            }
+
+        }
 
     }
 
@@ -90,5 +119,11 @@ public class UserHTTPHandler implements HttpHandler {
                 .setParameter("phone", phone)
                 .uniqueResult();
         return user != null;
+    }
+
+    private User getUserByPhone(Session session, String phone) {
+        return session.createQuery("from User where phone = :phone",User.class)
+                .setParameter("phone",phone)
+                .uniqueResult();
     }
 }

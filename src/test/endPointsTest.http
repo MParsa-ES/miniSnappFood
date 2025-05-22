@@ -10,3 +10,12 @@ Content-Type: application/json
   "address": "1324",
   "role": "BUYER"
 }
+### 2. Login a user
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+  "phone":"14",
+  "password": "1234"
+}
+

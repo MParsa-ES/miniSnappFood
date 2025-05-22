@@ -98,10 +98,9 @@ public class UserHTTPHandler implements HttpHandler {
             if (user == null || !user.getPassword().equals(dto.getPassword())) {
 
                 ErrorResponseDto error = new ErrorResponseDto("Invalid phone or password");
-                String response = new Gson().toJson(error);
-                exchange.sendResponseHeaders(401, response.getBytes().length);
+                exchange.sendResponseHeaders(401, gson.toJson(error).getBytes().length);
                 try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(response.getBytes());
+                    os.write(gson.toJson(error).getBytes());
                 }
                 return;
             }
@@ -120,7 +119,7 @@ public class UserHTTPHandler implements HttpHandler {
             userData.setAddress(user.getAddress());
             responseDto.setUser(userData);
 
-            String json = new Gson().toJson(responseDto);
+            String json = gson.toJson(responseDto);
             exchange.sendResponseHeaders(200, json.getBytes().length);
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(json.getBytes());

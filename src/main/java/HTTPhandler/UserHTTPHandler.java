@@ -38,9 +38,27 @@ public class UserHTTPHandler implements HttpHandler {
         User user = new Gson().fromJson(data, User.class);
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+
+            if (isPhoneNumberTaken(session, user.getPhone())){
+                String response = "Phone number already exists";
+                exchange.sendResponseHeaders(409, response.getBytes().length);
+                try(OutputStream os = exchange.getResponseBody()){
+                    os.write(response.getBytes());
+                }
+                return;
+            }
+
             Transaction transaction = session.beginTransaction();
 
-            session.save(user);
+            try {
+                session.save(user);
+            } catch (Exception e) {
+                String response = "Invalid input data";
+                exchange.sendResponseHeaders(400, response.getBytes().length);
+                try(OutputStream os = exchange.getResponseBody()){
+                    os.write(response.getBytes());
+                }
+            }
             // add Profile and save it
             transaction.commit();
 
@@ -67,10 +85,10 @@ public class UserHTTPHandler implements HttpHandler {
 
     }
 
-//    private boolean isPhoneNumberTaken(Session session, String phone) {
-//        User user = session.createQuery("from user where phone = :phone", User.class)
-//                .setParameter("phone", phone)
-//                .uniqueResult();
-//        return user != null;
-//    }
+    private boolean isPhoneNumberTaken(Session session, String phone) {
+        User user = session.createQuery("from User where phone = :phone", User.class)
+                .setParameter("phone", phone)
+                .uniqueResult();
+        return user != null;
+    }
 }

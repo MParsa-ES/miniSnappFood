@@ -23,14 +23,14 @@
              - create: recreates schema every time (⚠️ deletes data!)
              - validate: checks schema matches your entity classes
         -->
-        <property name="hibernate.hbm2ddl.auto">create</property>
+        <property name="hibernate.hbm2ddl.auto">update</property>
 
         <!-- 6. Show SQL queries in the console -->
         <property name="hibernate.show_sql">true</property>
 
         <mapping class="entity.User"/>
-        <mapping class="entity.Profile" />
-        <mapping class="entity.BankInfo" />
+        <mapping class="entity.Profile"/>
+        <mapping class="entity.BankInfo"/>
 
     </session-factory>
 </hibernate-configuration>

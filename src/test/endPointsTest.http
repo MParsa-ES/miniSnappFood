@@ -3,10 +3,10 @@ POST http://localhost:8080/auth/register
 Content-Type: application/json
 
 {
-  "name": "alice2",
-  "familyName": "alicepass",
-  "phone": "12345",
+  "fullName": "parsa esmaeili",
+  "phone": "14",
   "email": "",
   "password": "1234",
-  "address": "1324"
+  "address": "1324",
+  "role": "BUYER"
 }

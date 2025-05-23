@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import at.favre.lib.crypto.bcrypt.BCrypt;
 import dto.*;
 import entity.BankInfo;
 import entity.Profile;
@@ -17,6 +18,7 @@ import util.RateLimiter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+
 
 
 public class UserHTTPHandler implements HttpHandler {
@@ -93,7 +95,6 @@ public class UserHTTPHandler implements HttpHandler {
 
             User user = getUser(requestDto, role);
 
-
             session.save(user);
 
             transaction.commit();
@@ -127,14 +128,17 @@ public class UserHTTPHandler implements HttpHandler {
                     .setParameter("phone", requestDto.getPhone())
                     .uniqueResult();
 
-            if (user == null || !user.getPassword().equals(requestDto.getPassword())) {
+            if (user == null) {
+                SendUnauthorized(exchange);
+                return;
+            }
 
-                ErrorResponseDto error = new ErrorResponseDto("Unauthorized request");
-                String response = gson.toJson(error);
-                exchange.sendResponseHeaders(401, response.getBytes().length);
-                try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(response.getBytes());
-                }
+            String rawPassword = requestDto.getPassword();
+            String hashedPasswordFromDb = user.getPassword();
+            BCrypt.Result result = BCrypt.verifyer().verify(rawPassword.toCharArray(), hashedPasswordFromDb);
+
+            if(!result.verified) {
+                SendUnauthorized(exchange);
                 return;
             }
 
@@ -188,10 +192,12 @@ public class UserHTTPHandler implements HttpHandler {
         user.setFullName(requestDto.getFull_name());
         user.setPhone(requestDto.getPhone());
         user.setEmail(requestDto.getEmail());
-        user.setPassword(requestDto.getPassword());
         user.setRole(role);
         user.setAddress(requestDto.getAddress());
-
+        // Hashing password
+        String originalPassword = requestDto.getPassword();
+        String hashedPassword = BCrypt.withDefaults().hashToString(12, originalPassword.toCharArray());
+        user.setPassword(hashedPassword);
 
         BankInfo bankInfo = null;
         if (requestDto.getBank_info() != null) {
@@ -233,6 +239,14 @@ public class UserHTTPHandler implements HttpHandler {
     private boolean isValidEmail(String email) {
         String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
         return email.matches(emailRegex);
+    }
+    private void SendUnauthorized(HttpExchange exchange) throws IOException {
+        ErrorResponseDto error = new ErrorResponseDto("Unauthorized request");
+        String response = gson.toJson(error);
+        exchange.sendResponseHeaders(401, response.getBytes().length);
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(response.getBytes());
+        }
     }
 
 }

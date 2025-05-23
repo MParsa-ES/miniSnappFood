@@ -13,7 +13,7 @@ public class Profile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column (unique = false, nullable = false)
+    @Column (unique = false, nullable = true)
     private String profileImageBase64;
 
     @OneToOne(cascade = CascadeType.ALL)

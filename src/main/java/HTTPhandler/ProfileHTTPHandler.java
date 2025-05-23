@@ -6,6 +6,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import entity.User;
 import entity.Profile;
+import entity.InvalidToken;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import util.HibernateUtil;
@@ -26,11 +27,11 @@ public class ProfileHTTPHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
 
         // Checking correct Header for content type
-        String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
-        if (contentType == null || !contentType.toLowerCase().contains("application/json")) {
-            sendResponse(exchange, 415, "{\n\"error\":\"Unsupported media type\"\n}");
-            return;
-        }
+//        String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
+//        if (contentType == null || !contentType.toLowerCase().contains("application/json")) {
+//            sendResponse(exchange, 415, "{\n\"error\":\"Unsupported media type\"\n}");
+//            return;
+//        }
 
         String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
         if (!RateLimiter.isAllowed(ip)){
@@ -39,6 +40,17 @@ public class ProfileHTTPHandler implements HttpHandler {
         }
 
         String token = exchange.getRequestHeaders().getFirst("Authorization");
+
+        if (token == null || token.isEmpty()) {
+            sendResponse(exchange,401,"{\n\"error\":\"Unauthorized request\"\n}"); // Unauthorized
+            return;
+        }
+
+        // Check if the token is in BlockList
+        if (isTokenBlocklisted(token)) {
+            sendResponse(exchange,401,"{\n\"error\":\"Unauthorized request\"\n}"); // Unauthorized
+            return;
+        }
 
         String phone = JwtUtil.validateToken(token);
         if (phone == null) {
@@ -177,6 +189,25 @@ public class ProfileHTTPHandler implements HttpHandler {
     private Boolean IsPhoneTaken(Session session, String phone) {
         User user = getUserByPhone(session, phone);
         return user != null;
+    }
+
+    private boolean isTokenBlocklisted(String token) {
+        String jti = JwtUtil.getJtiFromToken(token);
+        // If token has no valid JTI it must be invalid
+        if (jti == null) {
+            return true;
+        }
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            InvalidToken foundToken = session.createQuery("from InvalidToken where jti = :jti", InvalidToken.class)
+                    .setParameter("jti", jti)
+                    .uniqueResult();
+            // اگر رکوردی پیدا شد (foundToken != null)، یعنی توکن باطل شده است
+            return foundToken != null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return true;
+        }
     }
 
     private void sendResponse(HttpExchange exchange, int statusCode, String responseBody) throws IOException {

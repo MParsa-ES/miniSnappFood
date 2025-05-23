@@ -10,6 +10,7 @@ import entity.BankInfo;
 import entity.Profile;
 import entity.User;
 import entity.Role;
+import entity.InvalidToken;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import util.HibernateUtil;
@@ -18,6 +19,7 @@ import util.RateLimiter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.Date;
 
 
 
@@ -29,11 +31,11 @@ public class UserHTTPHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
 
         // Checking correct Header for content type
-        String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
-        if (contentType == null || !contentType.toLowerCase().contains("application/json")) {
-            sendResponse(exchange, 415, "{\n\"error\":\"Unsupported media type\"\n}");
-            return;
-        }
+//        String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
+//        if (contentType == null || !contentType.toLowerCase().contains("application/json")) {
+//            sendResponse(exchange, 415, "{\n\"error\":\"Unsupported media type\"\n}");
+//            return;
+//        }
 
         // Checking for Bot
         String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
@@ -50,6 +52,8 @@ public class UserHTTPHandler implements HttpHandler {
                 handleRegister(exchange);
             } else if (path.equals("/auth/login")) {
                 handleLogin(exchange);
+            } else if (path.equals("/auth/logout")) {
+                handleLogout(exchange);
             } else {
                 sendResponse(exchange, 404, "{\"error\":\"Not found\"}");
             }
@@ -87,7 +91,7 @@ public class UserHTTPHandler implements HttpHandler {
 
             // TODO check if the profileImage64 field address is invalid and return 404 not found code for it with "{\n\"error\":\"Resource not found\"\n}" message
 
-            // only sellers and buyers can have bank info
+            // Only sellers and buyers can have bank info
             if (role == Role.BUYER && requestDto.getBank_info() != null) {
                 sendResponse(exchange, 403, "{\n\"error\":\"Forbidden request\"\n}");
                 return;
@@ -116,6 +120,7 @@ public class UserHTTPHandler implements HttpHandler {
     }
 
     private void handleLogin(HttpExchange exchange) throws IOException {
+
         InputStreamReader reader = new InputStreamReader(exchange.getRequestBody());
         UserLoginDto.Request requestDto = new Gson().fromJson(reader, UserLoginDto.Request.class);
 
@@ -187,6 +192,40 @@ public class UserHTTPHandler implements HttpHandler {
         }
     }
 
+    private void handleLogout(HttpExchange exchange) throws IOException {
+
+        String token = exchange.getRequestHeaders().getFirst("Authorization");
+
+        // Check if token exists
+        if (token == null || token.isEmpty()) {
+            SendUnauthorized(exchange);
+            return;
+        }
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            if (JwtUtil.validateToken(token) == null) {
+                SendUnauthorized(exchange);
+                return;
+            }
+
+            String jti = JwtUtil.getJtiFromToken(token);
+            Date expiryDate = JwtUtil.getExpirationDateFromToken(token);
+
+            if (jti != null && expiryDate != null) {
+                Transaction transaction = session.beginTransaction();
+                InvalidToken invalidToken = new InvalidToken(jti, expiryDate);
+                session.save(invalidToken);
+                transaction.commit();
+            }
+
+            sendResponse(exchange, 200, "{\"message\":\"User Logged out successfully\"}");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}");
+        }
+    }
+
     private User getUser(UserRegisterDto.Request requestDto, Role role) {
         User user = new User();
         user.setFullName(requestDto.getFull_name());
@@ -206,7 +245,6 @@ public class UserHTTPHandler implements HttpHandler {
             bankInfo.setAccount_number(requestDto.getBank_info().getAccount_number());
 
         }
-
 
         Profile profile = new Profile();
         profile.setProfileImageBase64(requestDto.getProfileImageBase64());

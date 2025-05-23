@@ -7,7 +7,7 @@ import io.jsonwebtoken.security.Keys;
 
 import java.security.Key;
 import java.util.Date;
-import java.util.UUID; // ۱. این را import کنید
+import java.util.UUID;
 
 public class JwtUtil {
 
@@ -35,7 +35,7 @@ public class JwtUtil {
 
     public static String validateToken(String token) {
         try {
-            // استفاده از متد کمکی برای خوانایی بهتر
+
             return extractAllClaims(token).getSubject();
         } catch (Exception e) {
             e.printStackTrace();

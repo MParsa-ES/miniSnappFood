@@ -36,7 +36,7 @@ public class ProfileHTTPHandler implements HttpHandler {
             }
         } else if ("PUT".equals(exchange.getRequestMethod())) {
             String path = exchange.getRequestURI().getPath();
-            if (path.matches("/auth/profile/\\d+")) {
+            if (path.matches("/auth/profile")) {
                 handleUpdateProfile(exchange, phone);
             } else {
                 exchange.sendResponseHeaders(404, -1); // Not Found

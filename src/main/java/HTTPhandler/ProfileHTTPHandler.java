@@ -1,6 +1,7 @@
 package HTTPhandler;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import entity.User;
@@ -10,6 +11,8 @@ import org.hibernate.Transaction;
 import util.HibernateUtil;
 import util.JwtUtil;
 import dto.*;
+import util.RateLimiter;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -17,13 +20,29 @@ import java.nio.charset.StandardCharsets;
 
 public class ProfileHTTPHandler implements HttpHandler {
 
+    private final Gson gson = new GsonBuilder().serializeNulls().create();
+
     @Override
     public void handle(HttpExchange exchange) throws IOException {
+
+        // Checking correct Header for content type
+        String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
+        if (contentType == null || !contentType.toLowerCase().contains("application/json")) {
+            sendResponse(exchange, 415, "{\n\"error\":\"Unsupported media type\"\n}");
+            return;
+        }
+
+        String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
+        if (!RateLimiter.isAllowed(ip)){
+            sendResponse(exchange, 429, "{\n\"error\":\"Too many requests\"\n}");
+            return;
+        }
+
         String token = exchange.getRequestHeaders().getFirst("Authorization");
 
         String phone = JwtUtil.validateToken(token);
         if (phone == null) {
-            exchange.sendResponseHeaders(401, -1); // Unauthorized
+            sendResponse(exchange,401,"{\n\"error\":\"Unauthorized request\"\n}"); // Unauthorized
             return;
         }
 
@@ -32,17 +51,17 @@ public class ProfileHTTPHandler implements HttpHandler {
             if (path.equals("/auth/profile")) {
                 handleGetProfile(exchange, phone);
             } else {
-                exchange.sendResponseHeaders(404, -1); // Not Found
+                sendResponse(exchange,404,"{\n\"error\":\"Resource not found\"\n}"); // Not Found
             }
         } else if ("PUT".equals(exchange.getRequestMethod())) {
             String path = exchange.getRequestURI().getPath();
             if (path.matches("/auth/profile")) {
                 handleUpdateProfile(exchange, phone);
             } else {
-                exchange.sendResponseHeaders(404, -1); // Not Found
+                sendResponse(exchange,404,"{\n\"error\":\"Resource not found\"\n}"); // Not Found
             }
         } else {
-            exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+            sendResponse(exchange, 405, "{\"error\":\"Method not allowed\"}"); // Method Not Allowed
         }
     }
 
@@ -51,7 +70,7 @@ public class ProfileHTTPHandler implements HttpHandler {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             User user = getUserByPhone(session, phone);
             if (user == null || user.getProfile() == null) {
-                exchange.sendResponseHeaders(404, -1); // Not Found
+                sendResponse(exchange,404,"{\n\"error\":\"Resource not found\"\n}"); // Not Found
                 return;
             }
 
@@ -65,51 +84,50 @@ public class ProfileHTTPHandler implements HttpHandler {
             }
 
             ProfileDto profileDTO = new ProfileDto(
-                    profile.getUser().getFullName(),
-                    profile.getUser().getPhone(),
-                    profile.getUser().getEmail(),
-                    profile.getUser().getRole().toString(),
-                    profile.getUser().getAddress(),
+                    user.getId(),
+                    user.getFullName(),
+                    user.getPhone(),
+                    user.getEmail(),
+                    user.getRole().toString(),
+                    user.getAddress(),
                     profile.getProfileImageBase64(),
                     bankName,
                     accountNumber
             );
 
-            String response = new Gson().toJson(profileDTO);
+            String response = gson.toJson(profileDTO);
 
             exchange.getResponseHeaders().set("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, response.getBytes(StandardCharsets.UTF_8).length);
-
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(response.getBytes(StandardCharsets.UTF_8));
-            }
+            sendResponse(exchange, 200, response);
 
         } catch (Exception e) {
             e.printStackTrace();
-            exchange.sendResponseHeaders(500, -1); // Internal Server Error
+            sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}"); // Internal Server Error
         }
     }
 
     private void handleUpdateProfile(HttpExchange exchange, String phone) throws IOException {
         InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8);
-        ProfileDto updatedProfile = new Gson().fromJson(reader, ProfileDto.class);
+        ProfileDto updatedProfile = gson.fromJson(reader, ProfileDto.class);
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Transaction tx = session.beginTransaction();
 
             User user = getUserByPhone(session, phone);
             if (user == null) {
-                exchange.sendResponseHeaders(404, -1); // Not Found
+                sendResponse(exchange,404,"{\n\"error\":\"Resource not found\"\n}"); // Not Found
                 return;
             }
             if(updatedProfile.getPhone() != null) {
                 if (IsPhoneTaken(session, updatedProfile.getPhone())) {
-                    exchange.sendResponseHeaders(403, -1); // Forbidden
+                    sendResponse(exchange, 403, "{\n\"error\":\"Forbidden request\"\n}"); // Forbidden
+                    return;
                 }
+                // setting the new phone number
+                user.setPhone(updatedProfile.getPhone());
             }
 
             if (updatedProfile.getFull_name() != null) user.setFullName(updatedProfile.getFull_name());
-            if (updatedProfile.getPhone() != null) user.setPhone(updatedProfile.getPhone());
             if (updatedProfile.getEmail() != null) user.setEmail(updatedProfile.getEmail());
             if (updatedProfile.getAddress() != null) user.setAddress(updatedProfile.getAddress());
 
@@ -159,6 +177,14 @@ public class ProfileHTTPHandler implements HttpHandler {
     private Boolean IsPhoneTaken(Session session, String phone) {
         User user = getUserByPhone(session, phone);
         return user != null;
+    }
+
+    private void sendResponse(HttpExchange exchange, int statusCode, String responseBody) throws IOException {
+        byte[] responseBodyBytes = responseBody.getBytes();
+        exchange.sendResponseHeaders(statusCode, responseBodyBytes.length);
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(responseBodyBytes);
+        }
     }
 
 }

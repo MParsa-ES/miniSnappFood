@@ -6,6 +6,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ProfileDto {
+    private long id;
     private String full_name;
     private String phone;
     private String email;
@@ -21,8 +22,9 @@ public class ProfileDto {
         private String account_number;
     }
 
-    public ProfileDto(String fullName, String phone, String email, String role, String address,
+    public ProfileDto(Long id,String fullName, String phone, String email, String role, String address,
                       String profilePicture, String bankName, String accountNumber) {
+        this.id = id;
         this.full_name = fullName;
         this.phone = phone;
         this.email = email;

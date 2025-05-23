@@ -13,12 +13,10 @@ import org.hibernate.Session;
 import org.hibernate.Transaction;
 import util.HibernateUtil;
 import util.JwtUtil;
-
 import util.RateLimiter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 
 
 public class UserHTTPHandler implements HttpHandler {
@@ -60,7 +58,7 @@ public class UserHTTPHandler implements HttpHandler {
 
     private void handleRegister(HttpExchange exchange) throws IOException {
         InputStreamReader reader = new InputStreamReader(exchange.getRequestBody());
-        UserRegisterRequestDto requestDto = new Gson().fromJson(reader, UserRegisterRequestDto.class);
+        UserRegisterDto.Request requestDto = new Gson().fromJson(reader, UserRegisterDto.Request.class);
 
         if (requestDto.getFull_name() == null || requestDto.getPhone() == null ||
                 requestDto.getPassword() == null || requestDto.getRole() == null ||
@@ -100,11 +98,12 @@ public class UserHTTPHandler implements HttpHandler {
 
             transaction.commit();
 
+            String token = JwtUtil.generateToken(user.getPhone());
 
-            UserRegisterResponseDto responseDto = new UserRegisterResponseDto();
+            UserRegisterDto.Response responseDto = new UserRegisterDto.Response();
             responseDto.setMessage("User registered successfully");
             responseDto.setUser_id(user.getId().toString());
-            responseDto.setToken("example-token"); // TODO: Implement real token generation
+            responseDto.setToken(token);
 
             String jsonResponse = gson.toJson(responseDto);
             sendResponse(exchange, 200, jsonResponse);
@@ -117,7 +116,7 @@ public class UserHTTPHandler implements HttpHandler {
 
     private void handleLogin(HttpExchange exchange) throws IOException {
         InputStreamReader reader = new InputStreamReader(exchange.getRequestBody());
-        UserLoginRequestDto requestDto = new Gson().fromJson(reader, UserLoginRequestDto.class);
+        UserLoginDto.Request requestDto = new Gson().fromJson(reader, UserLoginDto.Request.class);
 
         if (requestDto.getPhone() == null || requestDto.getPassword() == null) {
             sendResponse(exchange, 400, "{\n\"error\":\"Invalid `field name`\"\n}");
@@ -141,11 +140,11 @@ public class UserHTTPHandler implements HttpHandler {
 
             String token = JwtUtil.generateToken(user.getPhone());
 
-            UserLoginResponseDto responseDto = new UserLoginResponseDto();
+            UserLoginDto.Response responseDto = new UserLoginDto.Response();
             responseDto.setMessage("User logged in successfully");
             responseDto.setToken(token);
 
-            UserLoginResponseDto.UserData userData = new UserLoginResponseDto.UserData();
+            UserLoginDto.Response.UserData userData = new UserLoginDto.Response.UserData();
             userData.setId(String.valueOf(user.getId()));
             userData.setFull_name(user.getFullName());
             userData.setPhone(user.getPhone());
@@ -156,12 +155,12 @@ public class UserHTTPHandler implements HttpHandler {
 
             // Setting the profile image and bank info of the login response requestDto
             if (user.getProfile() != null) {
-                userData.setProfileImageBase64(user.getProfile().getProfilePicture());
+                userData.setProfileImageBase64(user.getProfile().getProfileImageBase64());
 
-                if (user.getProfile().getBankInfo() != null){
-                    UserLoginResponseDto.UserData.BankInfoDto bankInfoDto = new UserLoginResponseDto.UserData.BankInfoDto();
-                    bankInfoDto.setBank_name(user.getProfile().getBankInfo().getBankName());
-                    bankInfoDto.setAccount_number(user.getProfile().getBankInfo().getAccountNumber());
+                if (user.getProfile().getBank_info() != null){
+                    UserLoginDto.Response.UserData.BankInfoDto bankInfoDto = new UserLoginDto.Response.UserData.BankInfoDto();
+                    bankInfoDto.setBank_name(user.getProfile().getBank_info().getBank_name());
+                    bankInfoDto.setAccount_number(user.getProfile().getBank_info().getAccount_number());
                     userData.setBank_info(bankInfoDto);
                 }
             }
@@ -184,7 +183,7 @@ public class UserHTTPHandler implements HttpHandler {
         }
     }
 
-    private User getUser(UserRegisterRequestDto requestDto, Role role) {
+    private User getUser(UserRegisterDto.Request requestDto, Role role) {
         User user = new User();
         user.setFullName(requestDto.getFull_name());
         user.setPhone(requestDto.getPhone());
@@ -197,15 +196,15 @@ public class UserHTTPHandler implements HttpHandler {
         BankInfo bankInfo = null;
         if (requestDto.getBank_info() != null) {
             bankInfo = new BankInfo();
-            bankInfo.setBankName(requestDto.getBank_info().getBank_name());
-            bankInfo.setAccountNumber(requestDto.getBank_info().getAccount_number());
+            bankInfo.setBank_name(requestDto.getBank_info().getBank_name());
+            bankInfo.setAccount_number(requestDto.getBank_info().getAccount_number());
 
         }
 
 
         Profile profile = new Profile();
-        profile.setProfilePicture(requestDto.getProfileImageBase64());
-        profile.setBankInfo(bankInfo);
+        profile.setProfileImageBase64(requestDto.getProfileImageBase64());
+        profile.setBank_info(bankInfo);
 
 
         if (bankInfo != null) {

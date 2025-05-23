@@ -14,11 +14,11 @@ public class Profile {
     private Long id;
 
     @Column (unique = false, nullable = false)
-    private String profilePicture;
+    private String profileImageBase64;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn (name = "bankInfo_id" , nullable = true)
-    private BankInfo bankInfo;
+    private BankInfo bank_info;
 
     @OneToOne(mappedBy = "profile")
     private User user;
@@ -27,8 +27,8 @@ public class Profile {
     }
 
     public Profile(String profilePicture, BankInfo bankInfo, User user) {
-        this.profilePicture = profilePicture;
-        this.bankInfo = bankInfo;
+        this.profileImageBase64 = profilePicture;
+        this.bank_info = bankInfo;
         this.user = user;
     }
 }

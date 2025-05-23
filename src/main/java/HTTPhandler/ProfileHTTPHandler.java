@@ -59,9 +59,9 @@ public class ProfileHTTPHandler implements HttpHandler {
 
             String bankName = "";
             String accountNumber = "";
-            if (profile.getBankInfo() != null) {
-                bankName = profile.getBankInfo().getBankName();
-                accountNumber = profile.getBankInfo().getAccountNumber();
+            if (profile.getBank_info() != null) {
+                bankName = profile.getBank_info().getBank_name();
+                accountNumber = profile.getBank_info().getAccount_number();
             }
 
             ProfileDto profileDTO = new ProfileDto(
@@ -70,7 +70,7 @@ public class ProfileHTTPHandler implements HttpHandler {
                     profile.getUser().getEmail(),
                     profile.getUser().getRole().toString(),
                     profile.getUser().getAddress(),
-                    profile.getProfilePicture(),
+                    profile.getProfileImageBase64(),
                     bankName,
                     accountNumber
             );
@@ -102,39 +102,41 @@ public class ProfileHTTPHandler implements HttpHandler {
                 exchange.sendResponseHeaders(404, -1); // Not Found
                 return;
             }
+            if(updatedProfile.getPhone() != null) {
+                if (IsPhoneTaken(session, updatedProfile.getPhone())) {
+                    exchange.sendResponseHeaders(403, -1); // Forbidden
+                }
+            }
 
-            // بروزرسانی فیلدهای کاربر (User) انتخابی:
-            if (updatedProfile.getFullName() != null) user.setFullName(updatedProfile.getFullName());
+            if (updatedProfile.getFull_name() != null) user.setFullName(updatedProfile.getFull_name());
             if (updatedProfile.getPhone() != null) user.setPhone(updatedProfile.getPhone());
             if (updatedProfile.getEmail() != null) user.setEmail(updatedProfile.getEmail());
             if (updatedProfile.getAddress() != null) user.setAddress(updatedProfile.getAddress());
 
             Profile profile = user.getProfile();
-            if (updatedProfile.getProfilePicture() != null) profile.setProfilePicture(updatedProfile.getProfilePicture());
+            if (updatedProfile.getProfileImageBase64() != null) profile.setProfileImageBase64(updatedProfile.getProfileImageBase64());
 
-            // بروزرسانی اطلاعات بانکی:
-            if (updatedProfile.getBankInfo() != null && !user.getRole().toString().equals("BUYER")) {
-                if (profile.getBankInfo() == null) {
-                    // اگر موجود نباشد، یک موجودیت جدید بانک ایجاد کنید
-                    profile.setBankInfo(new entity.BankInfo());
-                    if (updatedProfile.getBankInfo().getBankName() != null) {
-                        profile.getBankInfo().setBankName(updatedProfile.getBankInfo().getBankName());
+            if (updatedProfile.getBank_info() != null && !user.getRole().toString().equals("BUYER")) {
+                if (profile.getBank_info() == null) {
+                    profile.setBank_info(new entity.BankInfo());
+                    if (updatedProfile.getBank_info().getBank_name() != null) {
+                        profile.getBank_info().setBank_name(updatedProfile.getBank_info().getBank_name());
                     }
-                    if (updatedProfile.getBankInfo().getAccountNumber() != null) {
-                        profile.getBankInfo().setAccountNumber(updatedProfile.getBankInfo().getAccountNumber());
+                    if (updatedProfile.getBank_info().getAccount_number() != null) {
+                        profile.getBank_info().setAccount_number(updatedProfile.getBank_info().getAccount_number());
                     }
                 }
                 else {
-                    if (updatedProfile.getBankInfo().getBankName() != null) {
-                        profile.getBankInfo().setBankName(updatedProfile.getBankInfo().getBankName());
+                    if (updatedProfile.getBank_info().getBank_name() != null) {
+                        profile.getBank_info().setBank_name(updatedProfile.getBank_info().getBank_name());
                     }
-                    if (updatedProfile.getBankInfo().getAccountNumber() != null) {
-                        profile.getBankInfo().setAccountNumber(updatedProfile.getBankInfo().getAccountNumber());
+                    if (updatedProfile.getBank_info().getAccount_number() != null) {
+                        profile.getBank_info().setAccount_number(updatedProfile.getBank_info().getAccount_number());
                     }
                 }
             }
 
-            session.saveOrUpdate(user); // از cascade برای ذخیره پروفایل و بانک اطلاعاتی استفاده می‌شود
+            session.saveOrUpdate(user);
             tx.commit();
 
             String response = "Profile updated successfully";
@@ -153,4 +155,10 @@ public class ProfileHTTPHandler implements HttpHandler {
                 .setParameter("phone", phone)
                 .uniqueResult();
     }
+
+    private Boolean IsPhoneTaken(Session session, String phone) {
+        User user = getUserByPhone(session, phone);
+        return user != null;
+    }
+
 }

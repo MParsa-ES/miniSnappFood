@@ -30,12 +30,7 @@ public class UserHTTPHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
 
-        // Checking correct Header for content type
-//        String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
-//        if (contentType == null || !contentType.toLowerCase().contains("application/json")) {
-//            sendResponse(exchange, 415, "{\n\"error\":\"Unsupported media type\"\n}");
-//            return;
-//        }
+
 
         // Checking for Bot
         String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
@@ -63,6 +58,10 @@ public class UserHTTPHandler implements HttpHandler {
     }
 
     private void handleRegister(HttpExchange exchange) throws IOException {
+
+        // Checking correct Header for content type
+        if (checkUnathorizedMediaType(exchange)) return;
+
         InputStreamReader reader = new InputStreamReader(exchange.getRequestBody());
         UserRegisterDto.Request requestDto = new Gson().fromJson(reader, UserRegisterDto.Request.class);
 
@@ -120,6 +119,9 @@ public class UserHTTPHandler implements HttpHandler {
     }
 
     private void handleLogin(HttpExchange exchange) throws IOException {
+
+        // Checking correct Header for content type
+        if (checkUnathorizedMediaType(exchange)) return;
 
         InputStreamReader reader = new InputStreamReader(exchange.getRequestBody());
         UserLoginDto.Request requestDto = new Gson().fromJson(reader, UserLoginDto.Request.class);
@@ -285,6 +287,17 @@ public class UserHTTPHandler implements HttpHandler {
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(response.getBytes());
         }
+    }
+
+    // Checking correct Header for content type
+    private boolean checkUnathorizedMediaType(HttpExchange exchange) throws IOException {
+
+        String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
+        if (contentType == null || !contentType.toLowerCase().contains("application/json")) {
+            sendResponse(exchange, 415, "{\n\"error\":\"Unsupported media type\"\n}");
+            return true;
+        }
+        return false;
     }
 
 }

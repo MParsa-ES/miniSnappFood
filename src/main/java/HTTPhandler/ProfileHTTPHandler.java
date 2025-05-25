@@ -27,11 +27,15 @@ public class ProfileHTTPHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
 
         // Checking correct Header for content type
-//        String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
-//        if (contentType == null || !contentType.toLowerCase().contains("application/json")) {
-//            sendResponse(exchange, 415, "{\n\"error\":\"Unsupported media type\"\n}");
-//            return;
-//        }
+        String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
+        if (contentType == null || !contentType.toLowerCase().contains("application/json")) {
+            try {
+                exchange.getRequestHeaders().add("Content-Type", "application/json");
+            } catch (Exception e) {
+                sendResponse(exchange, 415, "{\n\"error\":\"Unsupported media type\"\n}");
+                return;
+            }
+        }
 
         String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
         if (!RateLimiter.isAllowed(ip)){
@@ -146,6 +150,7 @@ public class ProfileHTTPHandler implements HttpHandler {
             Profile profile = user.getProfile();
             if (updatedProfile.getProfileImageBase64() != null) profile.setProfileImageBase64(updatedProfile.getProfileImageBase64());
 
+            // TODO this can be done in another way to return 403 forbidden request code
             if (updatedProfile.getBank_info() != null && !user.getRole().toString().equals("BUYER")) {
                 if (profile.getBank_info() == null) {
                     profile.setBank_info(new entity.BankInfo());
@@ -169,14 +174,10 @@ public class ProfileHTTPHandler implements HttpHandler {
             session.saveOrUpdate(user);
             tx.commit();
 
-            String response = "Profile updated successfully";
-            exchange.sendResponseHeaders(200, response.getBytes().length);
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(response.getBytes());
-            }
+            sendResponse(exchange, 200, "{\n\"message\":\"Profile updated successfully\"\n}");
         } catch (Exception e) {
             e.printStackTrace();
-            exchange.sendResponseHeaders(500, -1); // Internal Server Error
+            sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}"); // Internal Server Error
         }
     }
 

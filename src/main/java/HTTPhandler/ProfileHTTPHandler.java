@@ -11,12 +11,11 @@ import org.hibernate.Session;
 import org.hibernate.Transaction;
 import util.HibernateUtil;
 import util.JwtUtil;
-import dto.*;
+import dto.ProfileDto;
 import util.RateLimiter;
-
+import util.Utils;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 public class ProfileHTTPHandler implements HttpHandler {
@@ -26,39 +25,28 @@ public class ProfileHTTPHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
 
-        // Checking correct Header for content type
-        String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
-        if (contentType == null || !contentType.toLowerCase().contains("application/json")) {
-            try {
-                exchange.getRequestHeaders().add("Content-Type", "application/json");
-            } catch (Exception e) {
-                sendResponse(exchange, 415, "{\n\"error\":\"Unsupported media type\"\n}");
-                return;
-            }
-        }
-
         String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
-        if (!RateLimiter.isAllowed(ip)){
-            sendResponse(exchange, 429, "{\n\"error\":\"Too many requests\"\n}");
+        if (!RateLimiter.isAllowed(ip)) {
+            Utils.sendResponse(exchange, 429, "{\n\"error\":\"Too many requests\"\n}");
             return;
         }
 
         String token = exchange.getRequestHeaders().getFirst("Authorization");
 
         if (token == null || token.isEmpty()) {
-            sendResponse(exchange,401,"{\n\"error\":\"Unauthorized request\"\n}"); // Unauthorized
+            Utils.sendResponse(exchange, 401, "{\n\"error\":\"Unauthorized request\"\n}"); // Unauthorized
             return;
         }
 
         // Check if the token is in BlockList
         if (isTokenBlocklisted(token)) {
-            sendResponse(exchange,401,"{\n\"error\":\"Unauthorized request\"\n}"); // Unauthorized
+            Utils.sendResponse(exchange, 401, "{\n\"error\":\"Unauthorized request\"\n}"); // Unauthorized
             return;
         }
 
         String phone = JwtUtil.validateToken(token);
         if (phone == null) {
-            sendResponse(exchange,401,"{\n\"error\":\"Unauthorized request\"\n}"); // Unauthorized
+            Utils.sendResponse(exchange, 401, "{\n\"error\":\"Unauthorized request\"\n}"); // Unauthorized
             return;
         }
 
@@ -67,26 +55,26 @@ public class ProfileHTTPHandler implements HttpHandler {
             if (path.equals("/auth/profile")) {
                 handleGetProfile(exchange, phone);
             } else {
-                sendResponse(exchange,404,"{\n\"error\":\"Resource not found\"\n}"); // Not Found
+                Utils.sendResponse(exchange, 404, "{\n\"error\":\"Resource not found\"\n}"); // Not Found
             }
         } else if ("PUT".equals(exchange.getRequestMethod())) {
             String path = exchange.getRequestURI().getPath();
             if (path.matches("/auth/profile")) {
                 handleUpdateProfile(exchange, phone);
             } else {
-                sendResponse(exchange,404,"{\n\"error\":\"Resource not found\"\n}"); // Not Found
+                Utils.sendResponse(exchange, 404, "{\n\"error\":\"Resource not found\"\n}"); // Not Found
             }
         } else {
-            sendResponse(exchange, 405, "{\"error\":\"Method not allowed\"}"); // Method Not Allowed
+            Utils.sendResponse(exchange, 405, "{\"error\":\"Method not allowed\"}"); // Method Not Allowed
         }
     }
 
     private void handleGetProfile(HttpExchange exchange, String phone) throws IOException {
         // Fetch user and profile
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            User user = getUserByPhone(session, phone);
+            User user = Utils.getUserByPhone(session, phone);
             if (user == null || user.getProfile() == null) {
-                sendResponse(exchange,404,"{\n\"error\":\"Resource not found\"\n}"); // Not Found
+                Utils.sendResponse(exchange, 404, "{\n\"error\":\"Resource not found\"\n}"); // Not Found
                 return;
             }
 
@@ -114,29 +102,33 @@ public class ProfileHTTPHandler implements HttpHandler {
             String response = gson.toJson(profileDTO);
 
             exchange.getResponseHeaders().set("Content-Type", "application/json");
-            sendResponse(exchange, 200, response);
+            Utils.sendResponse(exchange, 200, response);
 
         } catch (Exception e) {
             e.printStackTrace();
-            sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}"); // Internal Server Error
+            Utils.sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}"); // Internal Server Error
         }
     }
 
     private void handleUpdateProfile(HttpExchange exchange, String phone) throws IOException {
+
+        // Checking correct Header for content type
+        if (Utils.checkUnathorizedMediaType(exchange)) return;
+
         InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8);
         ProfileDto updatedProfile = gson.fromJson(reader, ProfileDto.class);
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Transaction tx = session.beginTransaction();
 
-            User user = getUserByPhone(session, phone);
+            User user = Utils.getUserByPhone(session, phone);
             if (user == null) {
-                sendResponse(exchange,404,"{\n\"error\":\"Resource not found\"\n}"); // Not Found
+                Utils.sendResponse(exchange, 404, "{\n\"error\":\"Resource not found\"\n}"); // Not Found
                 return;
             }
-            if(updatedProfile.getPhone() != null) {
-                if (IsPhoneTaken(session, updatedProfile.getPhone())) {
-                    sendResponse(exchange, 403, "{\n\"error\":\"Forbidden request\"\n}"); // Forbidden
+            if (updatedProfile.getPhone() != null) {
+                if (Utils.getUserByPhone(session, updatedProfile.getPhone()) == null) {
+                    Utils.sendResponse(exchange, 403, "{\n\"error\":\"Forbidden request\"\n}"); // Forbidden
                     return;
                 }
                 // setting the new phone number
@@ -144,11 +136,19 @@ public class ProfileHTTPHandler implements HttpHandler {
             }
 
             if (updatedProfile.getFull_name() != null) user.setFullName(updatedProfile.getFull_name());
-            if (updatedProfile.getEmail() != null) user.setEmail(updatedProfile.getEmail());
+            if (updatedProfile.getEmail() != null) {
+                if (Utils.isValidEmail(updatedProfile.getEmail())) {
+                    user.setEmail(updatedProfile.getEmail());
+                } else {
+                    Utils.sendResponse(exchange, 403, "{\n\"error\":\"Invalid field name\"\n}");
+                }
+            }
+
             if (updatedProfile.getAddress() != null) user.setAddress(updatedProfile.getAddress());
 
             Profile profile = user.getProfile();
-            if (updatedProfile.getProfileImageBase64() != null) profile.setProfileImageBase64(updatedProfile.getProfileImageBase64());
+            if (updatedProfile.getProfileImageBase64() != null)
+                profile.setProfileImageBase64(updatedProfile.getProfileImageBase64());
 
             // TODO this can be done in another way to return 403 forbidden request code
             if (updatedProfile.getBank_info() != null && !user.getRole().toString().equals("BUYER")) {
@@ -160,8 +160,7 @@ public class ProfileHTTPHandler implements HttpHandler {
                     if (updatedProfile.getBank_info().getAccount_number() != null) {
                         profile.getBank_info().setAccount_number(updatedProfile.getBank_info().getAccount_number());
                     }
-                }
-                else {
+                } else {
                     if (updatedProfile.getBank_info().getBank_name() != null) {
                         profile.getBank_info().setBank_name(updatedProfile.getBank_info().getBank_name());
                     }
@@ -174,22 +173,11 @@ public class ProfileHTTPHandler implements HttpHandler {
             session.saveOrUpdate(user);
             tx.commit();
 
-            sendResponse(exchange, 200, "{\n\"message\":\"Profile updated successfully\"\n}");
+            Utils.sendResponse(exchange, 200, "{\n\"message\":\"Profile updated successfully\"\n}");
         } catch (Exception e) {
             e.printStackTrace();
-            sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}"); // Internal Server Error
+            Utils.sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}"); // Internal Server Error
         }
-    }
-
-    private User getUserByPhone(Session session, String phone) {
-        return session.createQuery("from User where phone = :phone", User.class)
-                .setParameter("phone", phone)
-                .uniqueResult();
-    }
-
-    private Boolean IsPhoneTaken(Session session, String phone) {
-        User user = getUserByPhone(session, phone);
-        return user != null;
     }
 
     private boolean isTokenBlocklisted(String token) {
@@ -210,13 +198,4 @@ public class ProfileHTTPHandler implements HttpHandler {
             return true;
         }
     }
-
-    private void sendResponse(HttpExchange exchange, int statusCode, String responseBody) throws IOException {
-        byte[] responseBodyBytes = responseBody.getBytes();
-        exchange.sendResponseHeaders(statusCode, responseBodyBytes.length);
-        try (OutputStream os = exchange.getResponseBody()) {
-            os.write(responseBodyBytes);
-        }
-    }
-
 }

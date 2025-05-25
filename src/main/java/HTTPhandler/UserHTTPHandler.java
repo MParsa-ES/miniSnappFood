@@ -16,11 +16,10 @@ import org.hibernate.Transaction;
 import util.HibernateUtil;
 import util.JwtUtil;
 import util.RateLimiter;
+import util.Utils;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.util.Date;
-
 
 
 public class UserHTTPHandler implements HttpHandler {
@@ -31,11 +30,10 @@ public class UserHTTPHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
 
 
-
         // Checking for Bot
         String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
-        if (!RateLimiter.isAllowed(ip)){
-            sendResponse(exchange, 429, "{\n\"error\":\"Too many requests\"\n}");
+        if (!RateLimiter.isAllowed(ip)) {
+            Utils.sendResponse(exchange, 429, "{\n\"error\":\"Too many requests\"\n}");
             return;
         }
 
@@ -43,32 +41,29 @@ public class UserHTTPHandler implements HttpHandler {
         if ("POST".equals(exchange.getRequestMethod())) {
             String path = exchange.getRequestURI().getPath();
 
-            if (path.equals("/auth/register")) {
-                handleRegister(exchange);
-            } else if (path.equals("/auth/login")) {
-                handleLogin(exchange);
-            } else if (path.equals("/auth/logout")) {
-                handleLogout(exchange);
-            } else {
-                sendResponse(exchange, 404, "{\"error\":\"Not found\"}");
+            switch (path) {
+                case "/auth/register" -> handleRegister(exchange);
+                case "/auth/login" -> handleLogin(exchange);
+                case "/auth/logout" -> handleLogout(exchange);
+                default -> Utils.sendResponse(exchange, 404, "{\"error\":\"Not found\"}");
             }
         } else {
-            sendResponse(exchange, 405, "{\"error\":\"Method not allowed\"}");
+            Utils.sendResponse(exchange, 405, "{\"error\":\"Method not allowed\"}");
         }
     }
 
     private void handleRegister(HttpExchange exchange) throws IOException {
 
         // Checking correct Header for content type
-        if (checkUnathorizedMediaType(exchange)) return;
+        if (Utils.checkUnathorizedMediaType(exchange)) return;
 
         InputStreamReader reader = new InputStreamReader(exchange.getRequestBody());
         UserRegisterDto.Request requestDto = new Gson().fromJson(reader, UserRegisterDto.Request.class);
 
         if (requestDto.getFull_name() == null || requestDto.getPhone() == null ||
                 requestDto.getPassword() == null || requestDto.getRole() == null ||
-                requestDto.getAddress() == null || (requestDto.getEmail() != null && !isValidEmail(requestDto.getEmail()))) {
-            sendResponse(exchange, 400, "{\n\"error\":\"Invalid `field name`\"\n}");
+                requestDto.getAddress() == null || (requestDto.getEmail() != null && !Utils.isValidEmail(requestDto.getEmail()))) {
+            Utils.sendResponse(exchange, 400, "{\n\"error\":\"Invalid field name\"\n}");
             return;
         }
 
@@ -76,13 +71,13 @@ public class UserHTTPHandler implements HttpHandler {
         try {
             role = Role.valueOf(requestDto.getRole().toUpperCase());
         } catch (IllegalArgumentException e) {
-            sendResponse(exchange, 400, "{\n\"error\":\"Invalid `field name`\"\n}");
+            Utils.sendResponse(exchange, 400, "{\n\"error\":\"Invalid field name\"\n}");
             return;
         }
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             if (isPhoneTaken(session, requestDto.getPhone())) {
-                sendResponse(exchange, 409, "{\"error\":\"Phone number already exists\"}");
+                Utils.sendResponse(exchange, 409, "{\"error\":\"Phone number already exists\"}");
                 return;
             }
 
@@ -92,7 +87,7 @@ public class UserHTTPHandler implements HttpHandler {
 
             // Only sellers and buyers can have bank info
             if (role == Role.BUYER && requestDto.getBank_info() != null) {
-                sendResponse(exchange, 403, "{\n\"error\":\"Forbidden request\"\n}");
+                Utils.sendResponse(exchange, 403, "{\n\"error\":\"Forbidden request\"\n}");
                 return;
             }
 
@@ -110,24 +105,24 @@ public class UserHTTPHandler implements HttpHandler {
             responseDto.setToken(token);
 
             String jsonResponse = gson.toJson(responseDto);
-            sendResponse(exchange, 200, jsonResponse);
+            Utils.sendResponse(exchange, 200, jsonResponse);
 
         } catch (Exception e) {
             e.printStackTrace();
-            sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}");
+            Utils.sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}");
         }
     }
 
     private void handleLogin(HttpExchange exchange) throws IOException {
 
         // Checking correct Header for content type
-        if (checkUnathorizedMediaType(exchange)) return;
+        if (Utils.checkUnathorizedMediaType(exchange)) return;
 
         InputStreamReader reader = new InputStreamReader(exchange.getRequestBody());
         UserLoginDto.Request requestDto = new Gson().fromJson(reader, UserLoginDto.Request.class);
 
         if (requestDto.getPhone() == null || requestDto.getPassword() == null) {
-            sendResponse(exchange, 400, "{\n\"error\":\"Invalid `field name`\"\n}");
+            Utils.sendResponse(exchange, 400, "{\n\"error\":\"Invalid `field name`\"\n}");
         }
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
@@ -136,7 +131,7 @@ public class UserHTTPHandler implements HttpHandler {
                     .uniqueResult();
 
             if (user == null) {
-                SendUnauthorized(exchange);
+                Utils.sendResponse(exchange, 401, gson.toJson("{\n\"error\":\"Unauthorized request\"\n}"));
                 return;
             }
 
@@ -144,8 +139,8 @@ public class UserHTTPHandler implements HttpHandler {
             String hashedPasswordFromDb = user.getPassword();
             BCrypt.Result result = BCrypt.verifyer().verify(rawPassword.toCharArray(), hashedPasswordFromDb);
 
-            if(!result.verified) {
-                SendUnauthorized(exchange);
+            if (!result.verified) {
+                Utils.sendResponse(exchange, 401, gson.toJson("{\n\"error\":\"Unauthorized request\"\n}"));
                 return;
             }
 
@@ -168,7 +163,7 @@ public class UserHTTPHandler implements HttpHandler {
             if (user.getProfile() != null) {
                 userData.setProfileImageBase64(user.getProfile().getProfileImageBase64());
 
-                if (user.getProfile().getBank_info() != null){
+                if (user.getProfile().getBank_info() != null) {
                     UserLoginDto.Response.UserData.BankInfoDto bankInfoDto = new UserLoginDto.Response.UserData.BankInfoDto();
                     bankInfoDto.setBank_name(user.getProfile().getBank_info().getBank_name());
                     bankInfoDto.setAccount_number(user.getProfile().getBank_info().getAccount_number());
@@ -177,20 +172,10 @@ public class UserHTTPHandler implements HttpHandler {
             }
 
             responseDto.setUser(userData);
-
-            String response = gson.toJson(responseDto);
-            exchange.sendResponseHeaders(200, response.getBytes().length);
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(response.getBytes());
-            }
+            Utils.sendResponse(exchange, 200, gson.toJson(responseDto));
         } catch (Exception e) {
             e.printStackTrace();
-            ErrorResponseDto error = new ErrorResponseDto("Internal server error");
-            String response = gson.toJson(error);
-            exchange.sendResponseHeaders(500, response.getBytes().length);
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(response.getBytes());
-            }
+            Utils.sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}");
         }
     }
 
@@ -200,13 +185,13 @@ public class UserHTTPHandler implements HttpHandler {
 
         // Check if token exists
         if (token == null || token.isEmpty()) {
-            SendUnauthorized(exchange);
+            Utils.sendResponse(exchange, 401, gson.toJson("{\n\"error\":\"Unauthorized request\"\n}"));
             return;
         }
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             if (JwtUtil.validateToken(token) == null) {
-                SendUnauthorized(exchange);
+                Utils.sendResponse(exchange, 401, gson.toJson("{\n\"error\":\"Unauthorized request\"\n}"));
                 return;
             }
 
@@ -220,11 +205,11 @@ public class UserHTTPHandler implements HttpHandler {
                 transaction.commit();
             }
 
-            sendResponse(exchange, 200, "{\"message\":\"User Logged out successfully\"}");
+            Utils.sendResponse(exchange, 200, "{\"message\":\"User Logged out successfully\"}");
 
         } catch (Exception e) {
             e.printStackTrace();
-            sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}");
+            Utils.sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}");
         }
     }
 
@@ -267,37 +252,6 @@ public class UserHTTPHandler implements HttpHandler {
                 .uniqueResult();
         return existing != null;
     }
-
-    private void sendResponse(HttpExchange exchange, int statusCode, String responseBody) throws IOException {
-        byte[] responseBodyBytes = responseBody.getBytes();
-        exchange.sendResponseHeaders(statusCode, responseBodyBytes.length);
-        try (OutputStream os = exchange.getResponseBody()) {
-            os.write(responseBodyBytes);
-        }
-    }
-
-    private boolean isValidEmail(String email) {
-        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
-        return email.matches(emailRegex);
-    }
-    private void SendUnauthorized(HttpExchange exchange) throws IOException {
-        ErrorResponseDto error = new ErrorResponseDto("Unauthorized request");
-        String response = gson.toJson(error);
-        exchange.sendResponseHeaders(401, response.getBytes().length);
-        try (OutputStream os = exchange.getResponseBody()) {
-            os.write(response.getBytes());
-        }
-    }
-
-    // Checking correct Header for content type
-    private boolean checkUnathorizedMediaType(HttpExchange exchange) throws IOException {
-
-        String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
-        if (contentType == null || !contentType.toLowerCase().contains("application/json")) {
-            sendResponse(exchange, 415, "{\n\"error\":\"Unsupported media type\"\n}");
-            return true;
-        }
-        return false;
-    }
-
 }
+
+

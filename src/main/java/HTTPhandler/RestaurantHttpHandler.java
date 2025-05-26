@@ -9,6 +9,7 @@ import org.hibernate.Session;
 import org.hibernate.Transaction;
 import util.HibernateUtil;
 import util.JwtUtil;
+import util.RateLimiter;
 import util.Utils;
 
 import java.io.IOException;
@@ -22,6 +23,11 @@ public class RestaurantHttpHandler implements HttpHandler {
 
         if (!Utils.isTokenValid(t)) return;
 
+        String ip = t.getRemoteAddress().getAddress().getHostAddress();
+        if (!RateLimiter.isAllowed(ip)) {
+            Utils.sendResponse(t, 429, "{\n\"error\":\"Too many requests\"\n}");
+            return;
+        }
 
         switch(t.getRequestURI().getPath()) {
             case "/restaurants":
@@ -41,8 +47,8 @@ public class RestaurantHttpHandler implements HttpHandler {
         InputStreamReader reader = new InputStreamReader(exchange.getRequestBody());
         RestaurantDto.Request requestDto = gson.fromJson(reader, RestaurantDto.Request.class);
 
-        if (requestDto.getName().isEmpty() || requestDto.getAddress().isEmpty() || requestDto.getPhone().isEmpty()) {
-            Utils.sendResponse(exchange, 405, "{\n\"error\":\"Invalid field name\"\n}");
+        if (requestDto.getName() == null || requestDto.getAddress() == null || requestDto.getPhone() == null) {
+            Utils.sendResponse(exchange, 400, "{\n\"error\":\"Invalid field name\"\n}");
             return;
         }
 

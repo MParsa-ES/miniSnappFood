@@ -34,6 +34,8 @@
         <mapping class="entity.InvalidToken"/>
         <mapping class="entity.Restaurant"/>
         <mapping class="entity.Menu"/>
+        <mapping class="entity.FoodItem"/>
+        <mapping class="entity.Category"/>
 
     </session-factory>
 </hibernate-configuration>

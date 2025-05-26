@@ -1,14 +1,19 @@
 package entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.ArrayList;
+import javax.management.ConstructorParameters;
+import java.util.Set;
 
 @Entity
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Restaurant {
 
     @Id
@@ -24,6 +29,7 @@ public class Restaurant {
     @Column(unique = false, nullable = false)
     private String phone;
 
+    @Lob
     @Column(unique = false, nullable = true)
     private String logo;
 
@@ -33,13 +39,11 @@ public class Restaurant {
     @Column(unique = false, nullable = true)
     private int additionalFee;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "menu_id")
-    private Menu menu;
     @OneToOne
     @JoinColumn(name = "owner_id")
     private User owner;
 
-
+    @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Menu> menus;
 
 }

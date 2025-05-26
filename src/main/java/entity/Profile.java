@@ -13,6 +13,7 @@ public class Profile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Lob
     @Column (unique = false, nullable = true)
     private String profileImageBase64;
 

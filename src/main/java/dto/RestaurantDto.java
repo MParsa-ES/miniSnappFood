@@ -1,6 +1,7 @@
 package dto;
 
 
+import entity.User;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,6 +18,7 @@ public class RestaurantDto {
         private String logoBase64;
         private int tax_fee;
         private int additional_fee;
+        private User user;
 
     }
 

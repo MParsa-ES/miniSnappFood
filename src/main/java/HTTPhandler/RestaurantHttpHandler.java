@@ -5,11 +5,11 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import dto.RestaurantDto;
 import entity.Restaurant;
+import entity.User;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import util.HibernateUtil;
 import util.JwtUtil;
-import util.RateLimiter;
 import util.Utils;
 
 import java.io.IOException;
@@ -22,12 +22,6 @@ public class RestaurantHttpHandler implements HttpHandler {
     public void handle(HttpExchange t) throws IOException {
 
         if (!Utils.isTokenValid(t)) return;
-
-        String ip = t.getRemoteAddress().getAddress().getHostAddress();
-        if (!RateLimiter.isAllowed(ip)) {
-            Utils.sendResponse(t, 429, "{\n\"error\":\"Too many requests\"\n}");
-            return;
-        }
 
         switch(t.getRequestURI().getPath()) {
             case "/restaurants":
@@ -48,14 +42,16 @@ public class RestaurantHttpHandler implements HttpHandler {
         RestaurantDto.Request requestDto = gson.fromJson(reader, RestaurantDto.Request.class);
 
         if (requestDto.getName() == null || requestDto.getAddress() == null || requestDto.getPhone() == null) {
-            Utils.sendResponse(exchange, 400, "{\n\"error\":\"Invalid field name\"\n}");
+            Utils.sendResponse(exchange, 405, "{\n\"error\":\"Invalid field name\"\n}");
             return;
         }
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
 
-            // User role is not seller
             String userPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
+            User user = util.Utils.getUserByPhone(session, userPhone);
+
+            // User role is not seller
             if (!(Utils.getUserByPhone(session, userPhone).getRole().toString().equals("SELLER"))) {
                 Utils.sendResponse(exchange, 403, "{\"error\":\"Forbidden request\"}");
             }
@@ -66,11 +62,11 @@ public class RestaurantHttpHandler implements HttpHandler {
                 return;
             }
 
-
             Restaurant restaurant = new Restaurant();
             restaurant.setName(requestDto.getName());
             restaurant.setAddress(requestDto.getAddress());
             restaurant.setPhone(requestDto.getPhone());
+            restaurant.setOwner(user);
             Transaction transaction = session.beginTransaction();
             session.save(restaurant);
             transaction.commit();

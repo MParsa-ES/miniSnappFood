@@ -6,8 +6,6 @@ import lombok.Setter;
 import entity.Role;
 
 
-
-
 @Entity
 @Getter
 @Setter
@@ -43,7 +41,6 @@ public class User {
     private Profile profile;
 
     public User(){}
-
 
     public User(String fullName, String phone, String email, String password, Role role, String address) {
         this.fullName = fullName;

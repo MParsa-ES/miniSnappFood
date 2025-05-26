@@ -48,11 +48,13 @@ public class RestaurantHttpHandler implements HttpHandler {
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
 
+            // User role is not seller
             String userPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
             if (!(Utils.getUserByPhone(session, userPhone).getRole().toString().equals("SELLER"))) {
                 Utils.sendResponse(exchange, 403, "{\"error\":\"Forbidden request\"}");
             }
 
+            // Phone already exists
             if (Utils.getRestaurantByPhone(session, requestDto.getPhone()) != null) {
                 Utils.sendResponse(exchange, 409, "{\"error\":\"Conflict occurred\"}");
                 return;

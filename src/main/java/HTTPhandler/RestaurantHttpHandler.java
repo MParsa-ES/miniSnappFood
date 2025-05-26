@@ -10,6 +10,7 @@ import org.hibernate.Session;
 import org.hibernate.Transaction;
 import util.HibernateUtil;
 import util.JwtUtil;
+import util.RateLimiter;
 import util.Utils;
 
 import java.io.IOException;
@@ -22,6 +23,12 @@ public class RestaurantHttpHandler implements HttpHandler {
     public void handle(HttpExchange t) throws IOException {
 
         if (!Utils.isTokenValid(t)) return;
+
+        String ip = t.getRemoteAddress().getAddress().getHostAddress();
+        if (!RateLimiter.isAllowed(ip)) {
+            Utils.sendResponse(t, 429, "{\n\"error\":\"Too many requests\"\n}");
+            return;
+        }
 
         switch(t.getRequestURI().getPath()) {
             case "/restaurants":
@@ -49,10 +56,10 @@ public class RestaurantHttpHandler implements HttpHandler {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
 
             String userPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
-            User user = util.Utils.getUserByPhone(session, userPhone);
+            User user = Utils.getUserByPhone(session, userPhone);
 
             // User role is not seller
-            if (!(Utils.getUserByPhone(session, userPhone).getRole().toString().equals("SELLER"))) {
+            if (!(user.getRole().toString().equals("SELLER"))) {
                 Utils.sendResponse(exchange, 403, "{\"error\":\"Forbidden request\"}");
             }
 

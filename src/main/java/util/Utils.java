@@ -1,6 +1,9 @@
 package util;
 import com.sun.net.httpserver.HttpExchange;
+import entity.InvalidToken;
+import entity.Restaurant;
 import entity.User;
+import io.jsonwebtoken.Jwt;
 import org.hibernate.Session;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -38,5 +41,41 @@ public class Utils {
         return session.createQuery("from User where phone = :phone", User.class)
                 .setParameter("phone", phone)
                 .uniqueResult();
+    }
+
+    public static Restaurant getRestaurantByPhone(Session session, String phone) {
+        return session.createQuery("from Restaurant where phone = :phone", Restaurant.class)
+                .setParameter("phone", phone)
+                .uniqueResult();
+    }
+
+    public static boolean isTokenValid(HttpExchange exchange) throws IOException {
+        String token = exchange.getRequestHeaders().getFirst("Authorization");
+        String jti = JwtUtil.getJtiFromToken(token);
+        boolean tokenBlockListed = false;
+
+        // If token has no valid JTI it must be invalid
+        if (jti == null) {
+            tokenBlockListed = true;
+        }
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            InvalidToken foundToken = session.createQuery("from InvalidToken where jti = :jti", InvalidToken.class)
+                    .setParameter("jti", jti)
+                    .uniqueResult();
+
+            tokenBlockListed = foundToken != null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            tokenBlockListed = true;
+        }
+
+        String phone = JwtUtil.validateToken(token);
+
+        if (token == null || token.isEmpty() || tokenBlockListed || phone == null) {
+            Utils.sendResponse(exchange, 401, "{\n\"error\":\"Unauthorized request\"\n}"); // Unauthorized
+            return false;
+        }
+        return true;
     }
 }

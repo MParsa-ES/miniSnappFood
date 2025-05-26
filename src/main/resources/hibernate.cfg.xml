@@ -32,6 +32,8 @@
         <mapping class="entity.Profile"/>
         <mapping class="entity.BankInfo"/>
         <mapping class="entity.InvalidToken"/>
+        <mapping class="entity.Restaurant"/>
+        <mapping class="entity.Menu"/>
 
     </session-factory>
 </hibernate-configuration>

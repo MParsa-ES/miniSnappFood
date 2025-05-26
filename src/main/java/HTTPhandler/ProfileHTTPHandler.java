@@ -6,7 +6,6 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import entity.User;
 import entity.Profile;
-import entity.InvalidToken;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import util.HibernateUtil;
@@ -33,22 +32,9 @@ public class ProfileHTTPHandler implements HttpHandler {
 
         String token = exchange.getRequestHeaders().getFirst("Authorization");
 
-        if (token == null || token.isEmpty()) {
-            Utils.sendResponse(exchange, 401, "{\n\"error\":\"Unauthorized request\"\n}"); // Unauthorized
-            return;
-        }
-
-        // Check if the token is in BlockList
-        if (isTokenBlocklisted(token)) {
-            Utils.sendResponse(exchange, 401, "{\n\"error\":\"Unauthorized request\"\n}"); // Unauthorized
-            return;
-        }
-
+        if (!Utils.isTokenValid(exchange)) return;
         String phone = JwtUtil.validateToken(token);
-        if (phone == null) {
-            Utils.sendResponse(exchange, 401, "{\n\"error\":\"Unauthorized request\"\n}"); // Unauthorized
-            return;
-        }
+
 
         if ("GET".equals(exchange.getRequestMethod())) {
             String path = exchange.getRequestURI().getPath();
@@ -180,22 +166,4 @@ public class ProfileHTTPHandler implements HttpHandler {
         }
     }
 
-    private boolean isTokenBlocklisted(String token) {
-        String jti = JwtUtil.getJtiFromToken(token);
-        // If token has no valid JTI it must be invalid
-        if (jti == null) {
-            return true;
-        }
-
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            InvalidToken foundToken = session.createQuery("from InvalidToken where jti = :jti", InvalidToken.class)
-                    .setParameter("jti", jti)
-                    .uniqueResult();
-            // اگر رکوردی پیدا شد (foundToken != null)، یعنی توکن باطل شده است
-            return foundToken != null;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return true;
-        }
-    }
 }

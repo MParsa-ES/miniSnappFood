@@ -2,7 +2,9 @@ package dto;
 
 
 import entity.User;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
@@ -11,6 +13,8 @@ public class RestaurantDto {
 
     @Getter
     @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Request {
         private String name;
         private String address;
@@ -24,6 +28,8 @@ public class RestaurantDto {
 
     @Getter
     @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Response {
         private Long id;
         private String name;

@@ -1,7 +1,7 @@
 package dao;
 
-import entity.Restaurant; // Assuming your entities are in this package
-import util.HibernateUtil; // Assuming this is your HibernateUtil location
+import entity.Restaurant;
+import util.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
@@ -14,7 +14,6 @@ public class RestaurantDAO {
             query.setParameter("phoneNumber", phone);
             return query.uniqueResultOptional();
         } catch (Exception e) {
-            System.err.println("Error finding restaurant by phone: " + phone + e.getMessage());
             e.printStackTrace();
             return Optional.empty();
         }
@@ -24,8 +23,7 @@ public class RestaurantDAO {
         Transaction transaction = null;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             transaction = session.beginTransaction();
-            session.save(restaurant); // save() is fine, persist() is JPA standard. Both work.
-            // save() returns the generated identifier, and modifies the passed object.
+            session.save(restaurant);
             transaction.commit();
             return restaurant; // The restaurant object now has its ID if generated
         } catch (Exception e) {
@@ -34,8 +32,7 @@ public class RestaurantDAO {
             }
             System.err.println("Error saving restaurant: " + e.getMessage());
             e.printStackTrace();
-            // Consider rethrowing a more specific persistence exception
-            throw new RuntimeException("Could not save restaurant: " + e.getMessage(), e);
+            throw new RuntimeException("Could not save restaurant");
         }
     }
 }

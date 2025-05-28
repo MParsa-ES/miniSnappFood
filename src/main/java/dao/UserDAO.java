@@ -13,7 +13,6 @@ public class UserDAO {
             query.setParameter("phoneNumber", phone);
             return query.uniqueResultOptional();
         } catch (Exception e) {
-            System.err.println("Error finding user by phone: " + phone + e.getMessage());
             e.printStackTrace();
             return Optional.empty();
         }

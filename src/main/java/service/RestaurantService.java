@@ -6,9 +6,8 @@ import dto.RestaurantDto;
 import entity.Restaurant;
 import entity.User;
 import entity.Role;
-// Import the specific exceptions
 import service.exception.UserNotFoundException;
-import service.exception.RestaurantServiceExceptions; // Import the container
+import service.exception.RestaurantServiceExceptions;
 
 public class RestaurantService {
     private final UserDAO userDAO;
@@ -20,21 +19,21 @@ public class RestaurantService {
     }
 
     public RestaurantDto.Response createRestaurant(RestaurantDto.Request requestDto, String ownerUserPhone)
-            throws UserNotFoundException, // This is separate
-            RestaurantServiceExceptions.UserNotSeller, // Inner class
-            RestaurantServiceExceptions.RestaurantAlreadyExists { // Inner class
+            throws UserNotFoundException,
+            RestaurantServiceExceptions.UserNotSeller,
+            RestaurantServiceExceptions.RestaurantAlreadyExists {
 
         User owner = userDAO.findByPhone(ownerUserPhone)
-                .orElseThrow(() -> new UserNotFoundException("Owner user with phone " + ownerUserPhone + " not found."));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
+        // if the user is not a seller
         if (owner.getRole() != Role.SELLER) {
-            // Throw the nested exception
-            throw new RestaurantServiceExceptions.UserNotSeller("User " + ownerUserPhone + " is not a seller and cannot create a restaurant.");
+            throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
         }
 
+        // a restaurant with this number already exists
         if (restaurantDAO.findByPhone(requestDto.getPhone()).isPresent()) {
-            // Throw the nested exception
-            throw new RestaurantServiceExceptions.RestaurantAlreadyExists("A restaurant with phone number " + requestDto.getPhone() + " already exists.");
+            throw new RestaurantServiceExceptions.RestaurantAlreadyExists("Conflict occurred");
         }
 
         Restaurant restaurant = new Restaurant();
@@ -42,13 +41,13 @@ public class RestaurantService {
         restaurant.setAddress(requestDto.getAddress());
         restaurant.setPhone(requestDto.getPhone());
         restaurant.setOwner(owner);
-
-        restaurant.setLogo(requestDto.getLogoBase64()); // Can be null if DTO field is null
+        restaurant.setLogo(requestDto.getLogoBase64());
         restaurant.setTaxFee(requestDto.getTax_fee());
         restaurant.setAdditionalFee(requestDto.getAdditional_fee());
 
         Restaurant savedRestaurant = restaurantDAO.save(restaurant);
 
+        // return the response dto for restaurant
         return new RestaurantDto.Response(
                 savedRestaurant.getId(),
                 savedRestaurant.getName(),

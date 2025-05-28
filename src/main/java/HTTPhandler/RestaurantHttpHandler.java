@@ -1,96 +1,107 @@
 package HTTPhandler;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+
+import dto.ErrorResponseDto;
 import dto.RestaurantDto;
-import entity.Restaurant;
-import entity.User;
-import org.hibernate.Session;
-import org.hibernate.Transaction;
-import util.HibernateUtil;
-import util.JwtUtil;
+import service.RestaurantService;
+
+import service.exception.UserNotFoundException;
+import service.exception.RestaurantServiceExceptions;
+
+import dao.UserDAO;
+import dao.RestaurantDAO;
+
 import util.RateLimiter;
 import util.Utils;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 public class RestaurantHttpHandler implements HttpHandler {
 
-    private final Gson gson = new Gson();
+    private final Gson gson = new GsonBuilder().serializeNulls().create();
+    private final RestaurantService restaurantService;
 
-    public void handle(HttpExchange t) throws IOException {
+    public RestaurantHttpHandler() {
+        this.restaurantService = new RestaurantService(new UserDAO(), new RestaurantDAO());
+    }
 
-        if (!Utils.isTokenValid(t)) return;
-
-        String ip = t.getRemoteAddress().getAddress().getHostAddress();
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
         if (!RateLimiter.isAllowed(ip)) {
-            Utils.sendResponse(t, 429, "{\n\"error\":\"Too many requests\"\n}");
+            Utils.sendResponse(exchange, 429, gson.toJson(new ErrorResponseDto("Too many requests")));
             return;
         }
 
-        switch(t.getRequestURI().getPath()) {
-            case "/restaurants":
-                createRestaurant(t);
+        String path = exchange.getRequestURI().getPath();
+        String method = exchange.getRequestMethod();
+
+        try {
+            if ("/restaurants".equals(path) && "POST".equals(method)) {
+                handleCreateRestaurant(exchange);
+            } else {
+                Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Resource not found")));
+            }
+        } catch (UserNotFoundException e) { // Catches the separate exception
+            Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
+        }
+        // Catch the specific exception for restaurant addition
+        catch (RestaurantServiceExceptions.UserNotSeller e) {
+            Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
+        } catch (RestaurantServiceExceptions.RestaurantAlreadyExists e) {
+            Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto(e.getMessage())));
+        }
+        catch (IllegalArgumentException e) {
+            Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid input: " + e.getMessage())));
+        } catch (com.google.gson.JsonSyntaxException e) {
+            Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid JSON format: " + e.getMessage())));
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            Utils.sendResponse(exchange, 500, gson.toJson(new ErrorResponseDto("Internal server error.")));
         }
     }
 
-    private void createRestaurant(HttpExchange exchange) throws IOException {
-
-        if (!exchange.getRequestMethod().equals("POST")) {
-            Utils.sendResponse(exchange, 405, "{\"error\":\"Method not allowed\"}");
+    private void handleCreateRestaurant(HttpExchange exchange) throws IOException {
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
             return;
         }
 
-        if (Utils.checkUnathorizedMediaType(exchange)) return;
-
-        InputStreamReader reader = new InputStreamReader(exchange.getRequestBody());
-        RestaurantDto.Request requestDto = gson.fromJson(reader, RestaurantDto.Request.class);
-
-        if (requestDto.getName() == null || requestDto.getAddress() == null || requestDto.getPhone() == null) {
-            Utils.sendResponse(exchange, 405, "{\n\"error\":\"Invalid field name\"\n}");
+        // check for user token
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
             return;
         }
 
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+        RestaurantDto.Request requestDto;
+        try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+            requestDto = gson.fromJson(reader, RestaurantDto.Request.class);
 
-            String userPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
-            User user = Utils.getUserByPhone(session, userPhone);
-
-            // User role is not seller
-            if (!(user.getRole().toString().equals("SELLER"))) {
-                Utils.sendResponse(exchange, 403, "{\"error\":\"Forbidden request\"}");
-            }
-
-            // Phone already exists
-            if (Utils.getRestaurantByPhone(session, requestDto.getPhone()) != null) {
-                Utils.sendResponse(exchange, 409, "{\"error\":\"Conflict occurred\"}");
+            // body of json request is empty
+            if (requestDto == null) {
+                Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
                 return;
             }
-
-            Restaurant restaurant = new Restaurant();
-            restaurant.setName(requestDto.getName());
-            restaurant.setAddress(requestDto.getAddress());
-            restaurant.setPhone(requestDto.getPhone());
-            restaurant.setOwner(user);
-            Transaction transaction = session.beginTransaction();
-            session.save(restaurant);
-            transaction.commit();
-
-            RestaurantDto.Response responseDto = new RestaurantDto.Response();
-            responseDto.setId(restaurant.getId());
-            responseDto.setName(requestDto.getName());
-            responseDto.setAddress(requestDto.getAddress());
-            responseDto.setPhone(requestDto.getPhone());
-            responseDto.setTax_fee(requestDto.getTax_fee());
-            responseDto.setAdditional_fee(requestDto.getAdditional_fee());
-            Utils.sendResponse(exchange, 201, gson.toJson(responseDto));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Utils.sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}");
         }
-    }
 
+        // required fields missing
+        if (requestDto.getName() == null || requestDto.getName().isBlank() ||
+                requestDto.getAddress() == null || requestDto.getAddress().isBlank() ||
+                requestDto.getPhone() == null || requestDto.getPhone().isBlank()) {
+            Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
+            return;
+        }
+
+        // Exceptions from here will be caught by the main handle() method's try-catch blocks
+        String ownerUserPhone = exchange.getResponseHeaders().getFirst("Authorization");
+        RestaurantDto.Response responseDto = restaurantService.createRestaurant(requestDto, ownerUserPhone);
+        Utils.sendResponse(exchange, 201, gson.toJson(responseDto));
+    }
 }

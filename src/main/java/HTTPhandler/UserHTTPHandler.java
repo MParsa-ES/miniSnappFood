@@ -165,8 +165,8 @@ public class UserHTTPHandler implements HttpHandler {
 
                 if (user.getProfile().getBank_info() != null) {
                     UserLoginDto.Response.UserData.BankInfoDto bankInfoDto = new UserLoginDto.Response.UserData.BankInfoDto();
-                    bankInfoDto.setBank_name(user.getProfile().getBank_info().getBank_name());
-                    bankInfoDto.setAccount_number(user.getProfile().getBank_info().getAccount_number());
+                    bankInfoDto.setBank_name(user.getProfile().getBank_info().getBankName());
+                    bankInfoDto.setAccount_number(user.getProfile().getBank_info().getAccountNumber());
                     userData.setBank_info(bankInfoDto);
                 }
             }
@@ -228,8 +228,8 @@ public class UserHTTPHandler implements HttpHandler {
         BankInfo bankInfo = null;
         if (requestDto.getBank_info() != null) {
             bankInfo = new BankInfo();
-            bankInfo.setBank_name(requestDto.getBank_info().getBank_name());
-            bankInfo.setAccount_number(requestDto.getBank_info().getAccount_number());
+            bankInfo.setBankName(requestDto.getBank_info().getBank_name());
+            bankInfo.setAccountNumber(requestDto.getBank_info().getAccount_number());
 
         }
 

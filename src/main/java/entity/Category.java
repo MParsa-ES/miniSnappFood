@@ -3,6 +3,8 @@ package entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -23,6 +25,6 @@ public class Category {
     private Restaurant restaurant;
 
     @ManyToMany(mappedBy = "categories")
-    private Set<FoodItem> foodItems;
+    private Set<FoodItem> foodItems = new HashSet<FoodItem>();
 
 }

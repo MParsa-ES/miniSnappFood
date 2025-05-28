@@ -4,6 +4,8 @@ package entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -29,6 +31,6 @@ public class Menu {
             joinColumns = @JoinColumn(name = "menu_id"),
             inverseJoinColumns = @JoinColumn(name = "food_item_id")
     )
-    private Set<FoodItem> foodItems;
+    private Set<FoodItem> foodItems = new HashSet<FoodItem>();
 
 }

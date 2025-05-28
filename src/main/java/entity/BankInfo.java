@@ -15,10 +15,10 @@ public class BankInfo {
     private Long id;
 
     @Column
-    private String bank_name;
+    private String bankName;
 
     @Column
-    private String account_number;
+    private String accountNumber;
 
     @OneToOne (mappedBy = "bank_info")
     private Profile profile;
@@ -27,7 +27,7 @@ public class BankInfo {
     public BankInfo() {}
 
     public BankInfo(String BankName, String AccountNumber) {
-        this.bank_name = BankName;
-        this.account_number = AccountNumber;
+        this.bankName = BankName;
+        this.accountNumber = AccountNumber;
     }
 }

@@ -69,8 +69,8 @@ public class ProfileHTTPHandler implements HttpHandler {
             String bankName = "";
             String accountNumber = "";
             if (profile.getBank_info() != null) {
-                bankName = profile.getBank_info().getBank_name();
-                accountNumber = profile.getBank_info().getAccount_number();
+                bankName = profile.getBank_info().getBankName();
+                accountNumber = profile.getBank_info().getAccountNumber();
             }
 
             ProfileDto profileDTO = new ProfileDto(
@@ -141,17 +141,17 @@ public class ProfileHTTPHandler implements HttpHandler {
                 if (profile.getBank_info() == null) {
                     profile.setBank_info(new entity.BankInfo());
                     if (updatedProfile.getBank_info().getBank_name() != null) {
-                        profile.getBank_info().setBank_name(updatedProfile.getBank_info().getBank_name());
+                        profile.getBank_info().setBankName(updatedProfile.getBank_info().getBank_name());
                     }
                     if (updatedProfile.getBank_info().getAccount_number() != null) {
-                        profile.getBank_info().setAccount_number(updatedProfile.getBank_info().getAccount_number());
+                        profile.getBank_info().setAccountNumber(updatedProfile.getBank_info().getAccount_number());
                     }
                 } else {
                     if (updatedProfile.getBank_info().getBank_name() != null) {
-                        profile.getBank_info().setBank_name(updatedProfile.getBank_info().getBank_name());
+                        profile.getBank_info().setBankName(updatedProfile.getBank_info().getBank_name());
                     }
                     if (updatedProfile.getBank_info().getAccount_number() != null) {
-                        profile.getBank_info().setAccount_number(updatedProfile.getBank_info().getAccount_number());
+                        profile.getBank_info().setAccountNumber(updatedProfile.getBank_info().getAccount_number());
                     }
                 }
             }

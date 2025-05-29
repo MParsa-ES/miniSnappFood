@@ -22,7 +22,6 @@ import util.Utils;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 
 public class RestaurantHttpHandler implements HttpHandler {
 
@@ -104,7 +103,7 @@ public class RestaurantHttpHandler implements HttpHandler {
         }
 
         // Exceptions from here will be caught by the main handle() method's try-catch blocks
-        String ownerUserPhone = JwtUtil.validateToken(exchange.getResponseHeaders().getFirst("Authorization"));
+        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         RestaurantDto.Response responseDto = restaurantService.createRestaurant(requestDto, ownerUserPhone);
         Utils.sendResponse(exchange, 201, gson.toJson(responseDto));
     }
@@ -117,7 +116,7 @@ public class RestaurantHttpHandler implements HttpHandler {
             return;
         }
 
-        String ownerUserPhone = JwtUtil.validateToken(exchange.getResponseHeaders().getFirst("Authorization"));
+        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(restaurantService.listRestaurants(ownerUserPhone)));
     }
 }

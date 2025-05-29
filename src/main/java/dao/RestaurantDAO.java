@@ -7,6 +7,7 @@ import util.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
+
 import java.util.Optional;
 
 public class RestaurantDAO {
@@ -27,12 +28,11 @@ public class RestaurantDAO {
             transaction = session.beginTransaction();
             session.save(restaurant);
             transaction.commit();
-            return restaurant; // The restaurant object now has its ID if generated
+            return restaurant;
         } catch (Exception e) {
             if (transaction != null && transaction.isActive()) {
                 transaction.rollback();
             }
-            System.err.println("Error saving restaurant: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Could not save restaurant");
         }
@@ -46,6 +46,32 @@ public class RestaurantDAO {
         } catch (Exception e) {
             e.printStackTrace();
             return Optional.empty();
+        }
+    }
+
+    public Optional<Restaurant> findRestaurantById(Long id) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<Restaurant> query = session.createQuery("FROM Restaurant WHERE id = :id", Restaurant.class);
+            query.setParameter("id", id);
+            return query.uniqueResultOptional();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Optional.empty();
+        }
+    }
+
+    public Restaurant update(Restaurant restaurant) {
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+            session.merge(restaurant);
+            transaction.commit();
+            return restaurant;
+        } catch (Exception e) {
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            throw new RuntimeException("Could not update restaurant");
         }
     }
 }

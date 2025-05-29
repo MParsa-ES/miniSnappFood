@@ -63,7 +63,7 @@ public class RestaurantService {
     }
 
     public ArrayList<RestaurantDto.Response> listRestaurants(String ownerUserPhone)
-            throws RestaurantServiceExceptions.UserNotSeller{
+            throws RestaurantServiceExceptions.UserNotSeller {
 
         User owner = userDAO.findByPhone(ownerUserPhone)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -93,6 +93,56 @@ public class RestaurantService {
         ));
 
         return restaurants;
+
+    }
+
+    public RestaurantDto.Response updateRestaurant(RestaurantDto.Request requestDto, String ownerUserPhone, Long restaurantId)
+            throws UserNotFoundException, RestaurantServiceExceptions.UserNotSeller,
+            RestaurantServiceExceptions.RestaurantNotFound,
+            RestaurantServiceExceptions.RestaurantAlreadyExists,
+            RestaurantServiceExceptions.UserNotOwner {
+
+        Restaurant currentRestaurant;
+        try {
+            currentRestaurant = restaurantDAO.findRestaurantById(restaurantId).get();
+        } catch (NoSuchElementException e) {
+            throw new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found");
+        }
+
+        User owner = userDAO.findByPhone(ownerUserPhone)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (owner.getRole() != Role.SELLER) {
+            throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
+        }
+
+        if (currentRestaurant.getOwner() != owner) {
+            throw new RestaurantServiceExceptions.UserNotOwner("Forbidden request");
+        }
+
+        if (requestDto.getPhone() != null && restaurantDAO.findByPhone(requestDto.getPhone()).isPresent()) {
+            throw new RestaurantServiceExceptions.RestaurantAlreadyExists("Conflict occurred");
+        }
+
+        if (requestDto.getName() != null) currentRestaurant.setName(requestDto.getName());
+        if (requestDto.getAddress() != null) currentRestaurant.setAddress(requestDto.getAddress());
+        if (requestDto.getPhone() != null) currentRestaurant.setPhone(requestDto.getPhone());
+        if (requestDto.getAddress() != null) currentRestaurant.setAddress(requestDto.getAddress());
+        if (requestDto.getLogoBase64() != null) currentRestaurant.setLogo(requestDto.getLogoBase64());
+        if (requestDto.getTax_fee() != 0) currentRestaurant.setTaxFee(requestDto.getTax_fee());
+        if (requestDto.getAdditional_fee() != 0) currentRestaurant.setAdditionalFee(requestDto.getAdditional_fee());
+
+        Restaurant updatedRestaurant = restaurantDAO.update(currentRestaurant);
+
+        return new RestaurantDto.Response(
+                updatedRestaurant.getId(),
+                updatedRestaurant.getName(),
+                updatedRestaurant.getAddress(),
+                updatedRestaurant.getPhone(),
+                updatedRestaurant.getLogo(),
+                updatedRestaurant.getTaxFee(),
+                updatedRestaurant.getAdditionalFee()
+        );
 
     }
 }

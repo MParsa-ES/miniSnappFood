@@ -23,5 +23,9 @@ public class RestaurantServiceExceptions extends RuntimeException {
             super(message);
         }
     }
+
+    public static class UserNotOwner extends RuntimeException {
+        public UserNotOwner(String message) { super(message); }
+    }
 }
 

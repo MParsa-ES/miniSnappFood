@@ -56,6 +56,9 @@ public class RestaurantHttpHandler implements HttpHandler {
                 handleListRestaurants(exchange);
             } else if (path.matches("/restaurants/\\d+/item") && "POST".equals(method)) {
                 handleAddItem(exchange);
+            } else if (path.matches("/restaurants/\\d+") && "PUT".equals(method)) {
+                Long id = Long.parseLong(path.split("/")[2]);
+                handleUpdateRestaurant(exchange, id);
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Resource not found1")));
             }
@@ -63,17 +66,16 @@ public class RestaurantHttpHandler implements HttpHandler {
             Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
         }
         // Catch the specific exception for restaurant addition
-        catch (RestaurantServiceExceptions.UserNotSeller e) {
+        catch (RestaurantServiceExceptions.UserNotSeller | RestaurantServiceExceptions.RestaurantNotFound |
+               RestaurantServiceExceptions.UserNotOwner e) {
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (RestaurantServiceExceptions.RestaurantAlreadyExists e) {
             Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto(e.getMessage())));
-        }
-        catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid input: " + e.getMessage())));
         } catch (com.google.gson.JsonSyntaxException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid JSON format: " + e.getMessage())));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             Utils.sendResponse(exchange, 500, gson.toJson(new ErrorResponseDto("Internal server error.")));
         }
@@ -128,6 +130,32 @@ public class RestaurantHttpHandler implements HttpHandler {
         Utils.sendResponse(exchange, 200, gson.toJson(restaurantService.listRestaurants(ownerUserPhone)));
     }
 
+    private void handleUpdateRestaurant(HttpExchange exchange, Long id) throws IOException {
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
+            return;
+        }
+
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        }
+
+        RestaurantDto.Request requestDto;
+        try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+            requestDto = gson.fromJson(reader, RestaurantDto.Request.class);
+
+            // body of json request is empty
+            if (requestDto == null) {
+                Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
+                return;
+            }
+        }
+
+        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
+        Utils.sendResponse(exchange, 200, gson.toJson(restaurantService.updateRestaurant(requestDto, ownerUserPhone, id)));
+
+    }
+
     private void handleAddItem(HttpExchange exchange) throws IOException {
         if (Utils.checkUnathorizedMediaType(exchange)) {
             Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
@@ -157,7 +185,7 @@ public class RestaurantHttpHandler implements HttpHandler {
         }
 
         String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
-        FoodItemDto.Response responseDto = foodItemService.createFoodItem(requestDto,  ownerUserPhone);
+        FoodItemDto.Response responseDto = foodItemService.createFoodItem(requestDto, ownerUserPhone);
         Utils.sendResponse(exchange, 201, gson.toJson(responseDto));
     }
 }

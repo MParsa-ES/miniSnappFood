@@ -12,6 +12,11 @@ public class RestaurantServiceExceptions extends RuntimeException {
         }
     }
 
+    // Exception for when there is no owned restaurant by user
+    public static class RestaurantNotFound extends RuntimeException {
+        public RestaurantNotFound(String message) { super(message); }
+    }
+
     // Exception for when a restaurant already exists
     public static class RestaurantAlreadyExists extends RuntimeException {
         public RestaurantAlreadyExists(String message) {

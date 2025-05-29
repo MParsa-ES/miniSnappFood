@@ -253,5 +253,3 @@ public class UserHTTPHandler implements HttpHandler {
         return existing != null;
     }
 }
-
-

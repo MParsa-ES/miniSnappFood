@@ -24,13 +24,16 @@ public class FoodItem {
     private String description;
 
     @Column
-    private Integer price;
+    private int price;
 
     @Column
-    private Integer supply;
+    private int supply;
 
     @Lob
     private String imageBase64;
+
+    @ElementCollection
+    private Set<String> keywords;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "restaurant_id", nullable = false)

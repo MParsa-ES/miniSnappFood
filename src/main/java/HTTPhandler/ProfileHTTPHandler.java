@@ -113,7 +113,7 @@ public class ProfileHTTPHandler implements HttpHandler {
                 return;
             }
             if (updatedProfile.getPhone() != null) {
-                if (Utils.getUserByPhone(session, updatedProfile.getPhone()) == null) {
+                if (Utils.getUserByPhone(session, updatedProfile.getPhone()) != null) {
                     Utils.sendResponse(exchange, 403, "{\n\"error\":\"Forbidden request\"\n}"); // Forbidden
                     return;
                 }

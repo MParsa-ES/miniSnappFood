@@ -143,12 +143,6 @@ public class RestaurantHttpHandler implements HttpHandler {
         RestaurantDto.Request requestDto;
         try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
             requestDto = gson.fromJson(reader, RestaurantDto.Request.class);
-
-            // body of json request is empty
-            if (requestDto == null) {
-                Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
-                return;
-            }
         }
 
         String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));

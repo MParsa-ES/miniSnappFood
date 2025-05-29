@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 import entity.Role;
 
+import java.util.Objects;
+
 
 @Entity
 @Getter
@@ -49,5 +51,10 @@ public class User {
         this.password = password;
         this.role = role;
         this.address = address;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof User && ((User) o).getId().equals(id);
     }
 }

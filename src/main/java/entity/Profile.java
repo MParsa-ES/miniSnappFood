@@ -32,4 +32,9 @@ public class Profile {
         this.bank_info = bankInfo;
         this.user = user;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof Profile && ((Profile) o).getId().equals(id);
+    }
 }

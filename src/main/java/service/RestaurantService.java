@@ -116,7 +116,7 @@ public class RestaurantService {
             throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
         }
 
-        if (currentRestaurant.getOwner() != owner) {
+        if (!currentRestaurant.getOwner().equals(owner)) {
             throw new RestaurantServiceExceptions.UserNotOwner("Forbidden request");
         }
 

@@ -9,6 +9,9 @@ import entity.Role;
 import service.exception.UserNotFoundException;
 import service.exception.RestaurantServiceExceptions;
 
+import java.util.ArrayList;
+import java.util.NoSuchElementException;
+
 public class RestaurantService {
     private final UserDAO userDAO;
     private final RestaurantDAO restaurantDAO;
@@ -57,5 +60,39 @@ public class RestaurantService {
                 savedRestaurant.getTaxFee(),
                 savedRestaurant.getAdditionalFee()
         );
+    }
+
+    public ArrayList<RestaurantDto.Response> listRestaurants(String ownerUserPhone)
+            throws RestaurantServiceExceptions.UserNotSeller{
+
+        User owner = userDAO.findByPhone(ownerUserPhone)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (owner.getRole() != Role.SELLER) {
+            throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
+        }
+
+        Restaurant ownerRestaurant = null;
+        ArrayList<RestaurantDto.Response> restaurants = new ArrayList<>();
+
+
+        try {
+            ownerRestaurant = restaurantDAO.findRestaurant(owner).get();
+        } catch (NoSuchElementException e) {
+            return restaurants;
+        }
+
+        restaurants.add(new RestaurantDto.Response(
+                ownerRestaurant.getId(),
+                ownerRestaurant.getName(),
+                ownerRestaurant.getAddress(),
+                ownerRestaurant.getPhone(),
+                ownerRestaurant.getLogo(),
+                ownerRestaurant.getTaxFee(),
+                ownerRestaurant.getAdditionalFee()
+        ));
+
+        return restaurants;
+
     }
 }

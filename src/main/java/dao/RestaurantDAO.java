@@ -1,6 +1,8 @@
 package dao;
 
 import entity.Restaurant;
+import entity.User;
+
 import util.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
@@ -33,6 +35,17 @@ public class RestaurantDAO {
             System.err.println("Error saving restaurant: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Could not save restaurant");
+        }
+    }
+
+    public Optional<Restaurant> findRestaurant(User owner) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<Restaurant> query = session.createQuery("FROM Restaurant WHERE owner = :owner", Restaurant.class);
+            query.setParameter("owner", owner);
+            return query.uniqueResultOptional();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Optional.empty();
         }
     }
 }

@@ -15,12 +15,14 @@ import service.exception.RestaurantServiceExceptions;
 import dao.UserDAO;
 import dao.RestaurantDAO;
 
+import util.JwtUtil;
 import util.RateLimiter;
 import util.Utils;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 
 public class RestaurantHttpHandler implements HttpHandler {
 
@@ -45,6 +47,8 @@ public class RestaurantHttpHandler implements HttpHandler {
         try {
             if ("/restaurants".equals(path) && "POST".equals(method)) {
                 handleCreateRestaurant(exchange);
+            } else if ("/restaurants/mine".equals(path) && "GET".equals(method)) {
+                handleListRestaurants(exchange);
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Resource not found")));
             }
@@ -100,8 +104,20 @@ public class RestaurantHttpHandler implements HttpHandler {
         }
 
         // Exceptions from here will be caught by the main handle() method's try-catch blocks
-        String ownerUserPhone = exchange.getResponseHeaders().getFirst("Authorization");
+        String ownerUserPhone = JwtUtil.validateToken(exchange.getResponseHeaders().getFirst("Authorization"));
         RestaurantDto.Response responseDto = restaurantService.createRestaurant(requestDto, ownerUserPhone);
         Utils.sendResponse(exchange, 201, gson.toJson(responseDto));
+    }
+
+    private void handleListRestaurants(HttpExchange exchange) throws IOException {
+
+        // check for user token
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+            return;
+        }
+
+        String ownerUserPhone = JwtUtil.validateToken(exchange.getResponseHeaders().getFirst("Authorization"));
+        Utils.sendResponse(exchange, 200, gson.toJson(restaurantService.listRestaurants(ownerUserPhone)));
     }
 }

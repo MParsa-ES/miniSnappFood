@@ -18,8 +18,5 @@ public class RestaurantServiceExceptions extends RuntimeException {
             super(message);
         }
     }
-
-    // You could add other exceptions here in the future if they are
-    // very specific to operations within RestaurantService.
 }
 

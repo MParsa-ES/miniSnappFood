@@ -120,12 +120,11 @@ public class RestaurantService {
             throw new RestaurantServiceExceptions.UserNotOwner("Forbidden request");
         }
 
-        if (requestDto.getPhone() != null && restaurantDAO.findByPhone(requestDto.getPhone()).isPresent()) {
+        if (requestDto.getPhone() != null && !requestDto.getPhone().equals(currentRestaurant.getPhone()) && restaurantDAO.findByPhone(requestDto.getPhone()).isPresent()) {
             throw new RestaurantServiceExceptions.RestaurantAlreadyExists("Conflict occurred");
         }
 
         if (requestDto.getName() != null) currentRestaurant.setName(requestDto.getName());
-        if (requestDto.getAddress() != null) currentRestaurant.setAddress(requestDto.getAddress());
         if (requestDto.getPhone() != null) currentRestaurant.setPhone(requestDto.getPhone());
         if (requestDto.getAddress() != null) currentRestaurant.setAddress(requestDto.getAddress());
         if (requestDto.getLogoBase64() != null) currentRestaurant.setLogo(requestDto.getLogoBase64());

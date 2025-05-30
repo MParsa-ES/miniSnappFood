@@ -56,7 +56,7 @@ public class RestaurantHttpHandler implements HttpHandler {
                 handleListRestaurants(exchange);
             } else if (path.matches("/restaurants/\\d+/item") && "POST".equals(method)) {
                 handleAddItem(exchange);
-            } else if (path.matches("/restaurants/\\d+") && "PUT".equals(method)) {
+            } else if (path.matches("^/restaurants/\\d+$") && "PUT".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
                 handleUpdateRestaurant(exchange, id);
             } else {
@@ -138,11 +138,17 @@ public class RestaurantHttpHandler implements HttpHandler {
 
         if (!Utils.isTokenValid(exchange)) {
             Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+            return;
         }
 
         RestaurantDto.Request requestDto;
         try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
             requestDto = gson.fromJson(reader, RestaurantDto.Request.class);
+
+            if (requestDto == null) {
+                Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
+                return;
+            }
         }
 
         String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));

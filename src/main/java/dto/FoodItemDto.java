@@ -38,4 +38,17 @@ public class FoodItemDto {
         private String imageBase64;
         private Set<String> keywords;
     }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Update {
+        private String name;
+        private String imageBase64;
+        private String description;
+        private int price;
+        private int supply;
+        private Set<String> keywords;
+    }
 }

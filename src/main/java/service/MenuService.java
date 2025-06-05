@@ -4,6 +4,7 @@ import dao.MenuDAO;
 import dao.RestaurantDAO;
 import dao.UserDAO;
 import dto.MenuDto;
+import dto.MessageDto;
 import entity.Menu;
 import entity.Restaurant;
 import entity.Role;
@@ -37,7 +38,7 @@ public class MenuService {
             throw new RestaurantServiceExceptions.UserNotOwner("This user is not owner of this restaurant");
         }
 
-        if (menuDAO.duplicateMenu(request.getTitle(), restaurantId).isPresent()) {
+        if (menuDAO.findMenuInRestaurant(request.getTitle(), restaurantId).isPresent()) {
             throw new MenuServiceExceptions.MenuIsDuplicateException("Menu already exists");
         }
 
@@ -50,5 +51,33 @@ public class MenuService {
         response.setTitle(request.getTitle());
 
         return response;
+    }
+
+    public MessageDto deleteMenu(String ownerPhoneNumber,Long restaurantId, String menuTitle) throws
+            RestaurantServiceExceptions.RestaurantNotFound,
+            UserNotFoundException, RestaurantServiceExceptions.UserNotSeller,
+            RestaurantServiceExceptions.UserNotOwner, MenuServiceExceptions.MenuNotFoundException {
+
+        Restaurant restaurant = restaurantDAO.findRestaurantById(restaurantId).orElseThrow(
+                () -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found"));
+
+        User owner = userDAO.findByPhone(ownerPhoneNumber).orElseThrow(
+                () -> new UserNotFoundException("User not found"));
+
+        if (owner.getRole() != Role.SELLER) {
+            throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
+        }
+
+        if (!restaurant.getOwner().equals(owner)) {
+            throw new RestaurantServiceExceptions.UserNotOwner("This user is not owner of this restaurant");
+        }
+
+
+        Menu menu = menuDAO.findMenuInRestaurant(menuTitle, restaurantId).orElseThrow(
+                () -> new MenuServiceExceptions.MenuNotFoundException("Menu with title " + menuTitle + " not found"));
+
+        menuDAO.deleteById(menu.getId());
+
+        return new MessageDto("Food menu removed from restaurant successfully");
     }
 }

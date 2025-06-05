@@ -10,4 +10,10 @@ public class MenuServiceExceptions extends RuntimeException {
             super(message);
         }
     }
+
+    public static class MenuNotFoundException extends RuntimeException {
+        public MenuNotFoundException(String message) {
+            super(message);
+        }
+    }
 }

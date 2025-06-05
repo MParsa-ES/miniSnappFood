@@ -60,29 +60,35 @@ public class RestaurantHttpHandler implements HttpHandler {
                 handleCreateRestaurant(exchange);
             } else if ("/restaurants/mine".equals(path) && "GET".equals(method)) {
                 handleListRestaurants(exchange);
+            } else if (path.matches("^/restaurants/\\d+$") && "PUT".equals(method)) {
+                Long id = Long.parseLong(path.split("/")[2]);
+                handleUpdateRestaurant(exchange, id);
             } else if (path.matches("/restaurants/\\d+/item") && "POST".equals(method)) {
                 handleAddItem(exchange);
             } else if (path.matches("/restaurants/\\d+/item/\\d+") && "GET".equals(method)) {
                 Long restaurantId = Long.parseLong(path.split("/")[2]);
                 Long itemId = Long.parseLong(path.split("/")[4]);
                 handleUpdateItem(exchange, restaurantId, itemId);
-            } else if (path.matches("^/restaurants/\\d+$") && "PUT".equals(method)) {
-                Long id = Long.parseLong(path.split("/")[2]);
-                handleUpdateRestaurant(exchange, id);
             } else if (path.matches("^/restaurants/\\d+/menu$") && "POST".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
                 handleAddMenu(exchange, id);
+            } else if (path.matches("^/restaurants/\\d+/menu/[^/]+$") && "DELETE".equals(method)) {
+                Long id = Long.parseLong(path.split("/")[2]);
+                String title = path.split("/")[4];
+                handleDeleteMenu(exchange, id, title);
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Resource not found")));
             }
-        } catch (UserNotFoundException e) { // Catches the separate exception
+        } catch (UserNotFoundException | RestaurantServiceExceptions.RestaurantNotFound |
+                 MenuServiceExceptions.MenuNotFoundException e) { // Catches the separate exception
             Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
         }
         // Catch the specific exception for restaurant addition
-        catch (RestaurantServiceExceptions.UserNotSeller | RestaurantServiceExceptions.RestaurantNotFound |
+        catch (RestaurantServiceExceptions.UserNotSeller |
                RestaurantServiceExceptions.UserNotOwner e) {
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
-        } catch (RestaurantServiceExceptions.RestaurantAlreadyExists | MenuServiceExceptions.MenuIsDuplicateException e) {
+        } catch (RestaurantServiceExceptions.RestaurantAlreadyExists |
+                 MenuServiceExceptions.MenuIsDuplicateException e) {
             Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid input: " + e.getMessage())));
@@ -228,7 +234,6 @@ public class RestaurantHttpHandler implements HttpHandler {
 
     }
 
-
     private void handleAddMenu(HttpExchange exchange, Long id) throws IOException {
         if (Utils.checkUnathorizedMediaType(exchange)) {
             Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
@@ -251,5 +256,16 @@ public class RestaurantHttpHandler implements HttpHandler {
 
         String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(menuService.createMenu(requestDto, ownerUserPhone, id)));
+    }
+
+    private void handleDeleteMenu(HttpExchange exchange, Long id, String title) throws IOException {
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+            return;
+        }
+
+        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
+        Utils.sendResponse(exchange, 200, gson.toJson(menuService.deleteMenu(ownerUserPhone, id, title)));
+
     }
 }

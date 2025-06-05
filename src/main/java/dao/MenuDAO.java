@@ -25,14 +25,29 @@ public class MenuDAO {
         }
     }
 
-    public Optional<Menu> duplicateMenu(String title, Long restaurantId) {
+    public Optional<Menu> findMenuInRestaurant(String title, Long restaurantId) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Query<Menu> query = session.createQuery("from Menu m where m.restaurant.id=:restaurantId and m.title =: title", Menu.class);
             query.setParameter("restaurantId", restaurantId);
             query.setParameter("title", title);
             return query.uniqueResultOptional();
         } catch (Exception e) {
-            throw new RuntimeException("Error while checking duplicate menu:" + e.getMessage(), e);
+            throw new RuntimeException("Error while checking for menu with title :" + title + e.getMessage(), e);
+        }
+    }
+
+    public void deleteById(Long id) {
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+            Menu menu = session.get(Menu.class, id);
+            session.delete(menu);
+            transaction.commit();
+        } catch (Exception e){
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            throw new RuntimeException("Error while deleting menu with id :" + id + e.getMessage(), e);
         }
     }
 }

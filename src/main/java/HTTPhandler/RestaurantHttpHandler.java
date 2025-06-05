@@ -62,6 +62,10 @@ public class RestaurantHttpHandler implements HttpHandler {
                 handleListRestaurants(exchange);
             } else if (path.matches("/restaurants/\\d+/item") && "POST".equals(method)) {
                 handleAddItem(exchange);
+            } else if (path.matches("/restaurants/\\d+/item/\\d+") && "GET".equals(method)) {
+                Long restaurantId = Long.parseLong(path.split("/")[2]);
+                Long itemId = Long.parseLong(path.split("/")[4]);
+                handleUpdateItem(exchange, restaurantId, itemId);
             } else if (path.matches("^/restaurants/\\d+$") && "PUT".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
                 handleUpdateRestaurant(exchange, id);
@@ -197,6 +201,33 @@ public class RestaurantHttpHandler implements HttpHandler {
         FoodItemDto.Response responseDto = foodItemService.createFoodItem(requestDto, ownerUserPhone);
         Utils.sendResponse(exchange, 201, gson.toJson(responseDto));
     }
+
+    private void handleUpdateItem(HttpExchange exchange, Long restaurantId, Long itemId) throws IOException {
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
+            return;
+        }
+
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+            return;
+        }
+
+        FoodItemDto.Request requestDto;
+        try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+            requestDto = gson.fromJson(reader, FoodItemDto.Request.class);
+
+            if (requestDto == null) {
+                Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
+                return;
+            }
+        }
+
+        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
+        Utils.sendResponse(exchange, 200, gson.toJson(foodItemService.UpdateItem(requestDto, ownerUserPhone, restaurantId, itemId)));
+
+    }
+
 
     private void handleAddMenu(HttpExchange exchange, Long id) throws IOException {
         if (Utils.checkUnathorizedMediaType(exchange)) {

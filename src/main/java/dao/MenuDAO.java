@@ -1,6 +1,7 @@
 package dao;
 
 import entity.Menu;
+import org.hibernate.Hibernate;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
@@ -27,10 +28,14 @@ public class MenuDAO {
 
     public Optional<Menu> findMenuInRestaurant(String title, Long restaurantId) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            Query<Menu> query = session.createQuery("from Menu m where m.restaurant.id=:restaurantId and m.title =: title", Menu.class);
+            Query<Menu> query = session.createQuery("from Menu m where m.restaurant.id=:restaurantId and m.title = :title", Menu.class);
             query.setParameter("restaurantId", restaurantId);
             query.setParameter("title", title);
-            return query.uniqueResultOptional();
+            Optional<Menu> menu = query.uniqueResultOptional();
+            if (menu.isPresent()) {
+                Hibernate.initialize(menu.get().getFoodItems());
+            }
+            return menu;
         } catch (Exception e) {
             throw new RuntimeException("Error while checking for menu with title :" + title + e.getMessage(), e);
         }

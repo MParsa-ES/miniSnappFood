@@ -1,6 +1,7 @@
 package entity;
 
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,6 +12,7 @@ import java.util.Set;
 @Table(name = "FoodItems")
 @Getter
 @Setter
+@EqualsAndHashCode(of = "id")
 public class FoodItem {
 
     @Id

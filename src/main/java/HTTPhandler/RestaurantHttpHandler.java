@@ -40,7 +40,7 @@ public class RestaurantHttpHandler implements HttpHandler {
     public RestaurantHttpHandler() {
         this.restaurantService = new RestaurantService(new UserDAO(), new RestaurantDAO());
         this.foodItemService = new FoodItemService(new UserDAO(), new RestaurantDAO(), new FoodItemDAO());
-        this.menuService = new MenuService(new UserDAO(), new MenuDAO(), new RestaurantDAO());
+        this.menuService = new MenuService(new UserDAO(), new MenuDAO(), new RestaurantDAO(), new FoodItemDAO());
     }
 
     @Override
@@ -57,28 +57,49 @@ public class RestaurantHttpHandler implements HttpHandler {
         try {
             if ("/restaurants".equals(path) && "POST".equals(method)) {
                 handleCreateRestaurant(exchange);
+
+
             } else if ("/restaurants/mine".equals(path) && "GET".equals(method)) {
                 handleListRestaurants(exchange);
+
+
             } else if (path.matches("^/restaurants/\\d+$") && "PUT".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
                 handleUpdateRestaurant(exchange, id);
+
+
             } else if (path.matches("/restaurants/\\d+/item") && "POST".equals(method)) {
                 handleAddItem(exchange);
+
+
             } else if (path.matches("/restaurants/\\d+/item/\\d+") && "GET".equals(method)) {
                 Long restaurantId = Long.parseLong(path.split("/")[2]);
                 Long itemId = Long.parseLong(path.split("/")[4]);
                 handleUpdateItem(exchange, restaurantId, itemId);
+
+
             } else if (path.matches("/restaurants/\\d+/item/\\d+") && "DELETE".equals(method)) {
                 Long restaurantId = Long.parseLong(path.split("/")[2]);
                 Long itemId = Long.parseLong(path.split("/")[4]);
                 handleDeleteItem(exchange, restaurantId, itemId);
+
+
             } else if (path.matches("^/restaurants/\\d+/menu$") && "POST".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
                 handleAddMenu(exchange, id);
+
+
             } else if (path.matches("^/restaurants/\\d+/menu/[^/]+$") && "DELETE".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
                 String title = path.split("/")[4];
                 handleDeleteMenu(exchange, id, title);
+
+
+            } else if (path.matches("^/restaurants/\\d+/menu/[^/]+$") && "PUT".equals(method)) {
+                Long id = Long.parseLong(path.split("/")[2]);
+                String title = path.split("/")[4];
+                handleAddFoodToMenu(exchange, id, title);
+
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Resource not found")));
             }
@@ -279,6 +300,36 @@ public class RestaurantHttpHandler implements HttpHandler {
 
         String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(menuService.deleteMenu(ownerUserPhone, id, title)));
+
+    }
+
+    private void handleAddFoodToMenu(HttpExchange exchange, Long restaurantId, String menuTitle) throws IOException {
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
+            return;
+        }
+
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+            return;
+        }
+
+        MenuDto.AddItemRequest requestDto;
+        try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+            requestDto = gson.fromJson(reader, MenuDto.AddItemRequest.class);
+            if (requestDto == null) {
+                Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
+                return;
+            }
+        }
+
+        if (requestDto.getItem_id() == null) {
+            Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
+        }
+
+        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
+        Utils.sendResponse(exchange, 200, gson.toJson(
+                menuService.addFoodToMenu(requestDto, ownerUserPhone, restaurantId, menuTitle)));
 
     }
 

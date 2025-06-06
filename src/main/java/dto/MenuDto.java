@@ -26,4 +26,12 @@ public class MenuDto {
         private String title;
     }
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AddItemRequest {
+        private Long item_id;
+    }
+
 }

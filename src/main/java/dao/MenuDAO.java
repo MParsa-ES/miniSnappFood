@@ -50,4 +50,18 @@ public class MenuDAO {
             throw new RuntimeException("Error while deleting menu with id :" + id + e.getMessage(), e);
         }
     }
+
+    public void update(Menu menu) {
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+            session.merge(menu);
+            transaction.commit();
+        } catch (Exception e){
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            throw new RuntimeException("Error while updating menu with id :" + menu.getId() + e.getMessage(), e);
+        }
+    }
 }

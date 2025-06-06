@@ -1,15 +1,18 @@
 package service;
 
+import com.sun.net.httpserver.HttpExchange;
 import dao.FoodItemDAO;
 import dao.RestaurantDAO;
 import dao.UserDAO;
 import dto.FoodItemDto;
 import dao.RestaurantDAO;
+import dto.MessageDto;
 import dto.RestaurantDto;
 import entity.FoodItem;
 import entity.Restaurant;
 import entity.Role;
 import entity.User;
+import service.exception.MenuServiceExceptions;
 import service.exception.RestaurantServiceExceptions;
 import service.exception.UserNotFoundException;
 
@@ -83,7 +86,7 @@ public class FoodItemService {
                 .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found"));
 
         FoodItem currentFoodItem = foodItemDAO.findFoodItemById(itemId, restaurantId)
-                .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Item not Found"));
+                .orElseThrow(() -> new RestaurantServiceExceptions.ItemNotFound("Item not Found"));
 
         if (!currentRestaurant.getOwner().equals(owner)) {
             throw new RestaurantServiceExceptions.UserNotOwner("Forbidden request");
@@ -110,5 +113,22 @@ public class FoodItemService {
 
     }
 
+    public MessageDto DeleteItem(Long restaurantId, Long itemId)  throws
+    RestaurantServiceExceptions.RestaurantNotFound,
+    UserNotFoundException, RestaurantServiceExceptions.UserNotSeller,
+    RestaurantServiceExceptions.UserNotOwner, MenuServiceExceptions.MenuNotFoundException {
+
+
+        Restaurant restaurant = restaurantDAO.findRestaurantById(restaurantId)
+                .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found"));
+
+        FoodItem foodItem = foodItemDAO.findFoodItemById(itemId, restaurantId)
+                .orElseThrow(() -> new RestaurantServiceExceptions.ItemNotFound("Item not Found"));
+
+        foodItemDAO.delete(foodItem);
+
+        return new MessageDto("Item deleted successfully");
+
+    }
 
 }

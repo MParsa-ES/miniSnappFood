@@ -1,5 +1,6 @@
 package org.example;
 
+import HTTPhandler.BuyerHTTPHandler;
 import HTTPhandler.RestaurantHttpHandler;
 import HTTPhandler.UserHTTPHandler;
 import HTTPhandler.ProfileHTTPHandler;
@@ -17,6 +18,7 @@ public class Main {
         server.createContext("/auth", new UserHTTPHandler());
         server.createContext("/auth/profile", new ProfileHTTPHandler());
         server.createContext("/restaurants", new RestaurantHttpHandler());
+        server.createContext("/vendors", new BuyerHTTPHandler());
         server.start();
         System.out.println("Server started on http://localhost:8080");
     }

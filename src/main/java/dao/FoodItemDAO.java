@@ -55,4 +55,18 @@ public class FoodItemDAO {
         }
     }
 
+    public void delete(FoodItem foodItem) {
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+            session.delete(foodItem);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            throw new RuntimeException("Could not delete foodItem");
+        }
+    }
+
 }

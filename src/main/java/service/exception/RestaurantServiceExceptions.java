@@ -24,6 +24,10 @@ public class RestaurantServiceExceptions extends RuntimeException {
         }
     }
 
+    public static class ItemNotFound extends RuntimeException {
+        public ItemNotFound(String message) { super(message); }
+    }
+
     public static class UserNotOwner extends RuntimeException {
         public UserNotOwner(String message) { super(message); }
     }

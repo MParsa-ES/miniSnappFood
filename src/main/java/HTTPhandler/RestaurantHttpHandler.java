@@ -52,7 +52,6 @@ public class RestaurantHttpHandler implements HttpHandler {
         }
 
         String path = exchange.getRequestURI().getPath();
-        System.out.println(path);
         String method = exchange.getRequestMethod();
 
         try {
@@ -69,6 +68,10 @@ public class RestaurantHttpHandler implements HttpHandler {
                 Long restaurantId = Long.parseLong(path.split("/")[2]);
                 Long itemId = Long.parseLong(path.split("/")[4]);
                 handleUpdateItem(exchange, restaurantId, itemId);
+            } else if (path.matches("/restaurants/\\d+/item/\\d+") && "DELETE".equals(method)) {
+                Long restaurantId = Long.parseLong(path.split("/")[2]);
+                Long itemId = Long.parseLong(path.split("/")[4]);
+                handleDeleteItem(exchange, restaurantId, itemId);
             } else if (path.matches("^/restaurants/\\d+/menu$") && "POST".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
                 handleAddMenu(exchange, id);
@@ -234,6 +237,16 @@ public class RestaurantHttpHandler implements HttpHandler {
 
     }
 
+    private void handleDeleteItem(HttpExchange exchange, Long restaurantId, Long itemId) throws IOException {
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+            return;
+        }
+
+        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
+        Utils.sendResponse(exchange, 200, gson.toJson(foodItemService.DeleteItem(restaurantId, itemId)));
+    }
+
     private void handleAddMenu(HttpExchange exchange, Long id) throws IOException {
         if (Utils.checkUnathorizedMediaType(exchange)) {
             Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
@@ -268,4 +281,5 @@ public class RestaurantHttpHandler implements HttpHandler {
         Utils.sendResponse(exchange, 200, gson.toJson(menuService.deleteMenu(ownerUserPhone, id, title)));
 
     }
+
 }

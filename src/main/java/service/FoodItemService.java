@@ -31,7 +31,8 @@ public class FoodItemService {
 
     public FoodItemDto.Response createFoodItem(FoodItemDto.Request requestDto, String phone)
             throws UserNotFoundException,
-            RestaurantServiceExceptions.UserNotSeller {
+            RestaurantServiceExceptions.UserNotSeller,
+            RestaurantServiceExceptions.ItemAlreadyExists {
 
         User owner = userDAO.findByPhone(phone)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -43,6 +44,10 @@ public class FoodItemService {
 
         Restaurant restaurant = restaurantDAO.findRestaurant(owner)
                 .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Forbidden request"));
+
+        if (foodItemDAO.checkFoodItem(requestDto, restaurant)) {
+            throw new RestaurantServiceExceptions.ItemAlreadyExists("Conflict occurred");
+        }
 
         FoodItem foodItem = new FoodItem();
         foodItem.setName(requestDto.getName());

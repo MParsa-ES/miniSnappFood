@@ -120,6 +120,7 @@ public class RestaurantHttpHandler implements HttpHandler {
                RestaurantServiceExceptions.UserNotOwner e) {
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (RestaurantServiceExceptions.RestaurantAlreadyExists |
+                 RestaurantServiceExceptions.ItemAlreadyExists |
                  MenuServiceExceptions.MenuIsDuplicateException e) {
             Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (IllegalArgumentException e) {

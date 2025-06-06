@@ -1,15 +1,35 @@
 package dao;
 
+import dto.FoodItemDto;
 import entity.FoodItem;
 import entity.Restaurant;
+import entity.User;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
+import service.exception.RestaurantServiceExceptions;
 import util.HibernateUtil;
 
 import java.util.Optional;
 
 public class FoodItemDAO {
+
+    public boolean checkFoodItem(FoodItemDto.Request foodItem, Restaurant restaurant) throws RestaurantServiceExceptions {
+
+        Long restaurantId = restaurant.getId();
+        String name = foodItem.getName();
+
+        try(Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<FoodItem> query = session.createQuery("FROM FoodItem WHERE name = :name AND  restaurant.id = :restaurantId", FoodItem.class);
+            query.setParameter("name", foodItem.getName());
+            query.setParameter("restaurantId", restaurantId);
+
+            return !query.list().isEmpty();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return true;
+        }
+    }
 
     public FoodItem save(FoodItem foodItem) {
         Transaction transaction = null;

@@ -28,6 +28,10 @@ public class RestaurantServiceExceptions extends RuntimeException {
         public ItemNotFound(String message) { super(message); }
     }
 
+    public static class ItemAlreadyExists extends RuntimeException {
+        public ItemAlreadyExists(String message) { super(message); }
+    }
+
     public static class UserNotOwner extends RuntimeException {
         public UserNotOwner(String message) { super(message); }
     }

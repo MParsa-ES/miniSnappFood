@@ -3,7 +3,6 @@ import com.sun.net.httpserver.HttpExchange;
 import entity.InvalidToken;
 import entity.Restaurant;
 import entity.User;
-import io.jsonwebtoken.Jwt;
 import org.hibernate.Session;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -43,12 +42,6 @@ public class Utils {
                 .uniqueResult();
     }
 
-    public static Restaurant getRestaurantByPhone(Session session, String phone) {
-        return session.createQuery("from Restaurant where phone = :phone", Restaurant.class)
-                .setParameter("phone", phone)
-                .uniqueResult();
-    }
-
     public static boolean isTokenValid(HttpExchange exchange) throws IOException {
         String token = exchange.getRequestHeaders().getFirst("Authorization");
         String jti = JwtUtil.getJtiFromToken(token);
@@ -73,7 +66,7 @@ public class Utils {
         String phone = JwtUtil.validateToken(token);
 
         if (token == null || token.isEmpty() || tokenBlockListed || phone == null) {
-            Utils.sendResponse(exchange, 401, "{\n\"error\":\"Unauthorized request\"\n}"); // Unauthorized
+//            Utils.sendResponse(exchange, 401, "{\n\"error\":\"Unauthorized request\"\n}"); // Unauthorized
             return false;
         }
         return true;

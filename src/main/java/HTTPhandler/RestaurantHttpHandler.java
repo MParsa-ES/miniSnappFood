@@ -100,11 +100,19 @@ public class RestaurantHttpHandler implements HttpHandler {
                 String title = path.split("/")[4];
                 handleAddFoodToMenu(exchange, id, title);
 
+            } else if (path.matches("^/restaurants/\\d+/menu/[^/]+/\\d+$")) {
+                Long restaurantId = Long.parseLong(path.split("/")[2]);
+                String title = path.split("/")[4];
+                Long foodId = Long.parseLong(path.split("/")[5]);
+                handleDeleteFoodFromMenu(exchange, restaurantId, title, foodId);
+
+
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Resource not found")));
             }
         } catch (UserNotFoundException | RestaurantServiceExceptions.RestaurantNotFound |
-                 MenuServiceExceptions.MenuNotFoundException e) { // Catches the separate exception
+                 MenuServiceExceptions.MenuNotFoundException | RestaurantServiceExceptions.ItemNotFound |
+                 MenuServiceExceptions.FoodNotInMenu e) { // Catches the separate exception
             Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
         }
         // Catch the specific exception for restaurant addition
@@ -331,6 +339,16 @@ public class RestaurantHttpHandler implements HttpHandler {
         Utils.sendResponse(exchange, 200, gson.toJson(
                 menuService.addFoodToMenu(requestDto, ownerUserPhone, restaurantId, menuTitle)));
 
+    }
+
+    private void handleDeleteFoodFromMenu(HttpExchange exchange, Long restaurantId, String menuTitle, Long foodId) throws IOException {
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+            return;
+        }
+
+        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
+        Utils.sendResponse(exchange, 200, gson.toJson(menuService.deleteFoodFromMenu(ownerUserPhone, restaurantId, menuTitle, foodId)));
     }
 
 }

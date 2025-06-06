@@ -16,4 +16,10 @@ public class MenuServiceExceptions extends RuntimeException {
             super(message);
         }
     }
+
+    public static class FoodNotInMenu extends RuntimeException {
+        public FoodNotInMenu(String message) {
+            super(message);
+        }
+    }
 }

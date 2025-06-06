@@ -113,4 +113,40 @@ public class MenuService {
             return new MessageDto("Food item is already in the menu");
         }
     }
+
+    public MessageDto deleteFoodFromMenu(String ownerPhoneNumber, Long restaurantId, String menuTitle, Long foodId) throws
+            RestaurantServiceExceptions.RestaurantNotFound,
+            RestaurantServiceExceptions.UserNotSeller,
+            RestaurantServiceExceptions.UserNotOwner,
+            RestaurantServiceExceptions.ItemNotFound,
+            MenuServiceExceptions.FoodNotInMenu,
+            MenuServiceExceptions.MenuNotFoundException,
+            UserNotFoundException{
+        Restaurant restaurant = restaurantDAO.findRestaurantById(restaurantId).orElseThrow(
+                () -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found"));
+
+        User owner = userDAO.findByPhone(ownerPhoneNumber).orElseThrow(
+                () -> new UserNotFoundException("User not found"));
+
+        if (owner.getRole() != Role.SELLER) {
+            throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
+        }
+
+        if (!restaurant.getOwner().equals(owner)) {
+            throw new RestaurantServiceExceptions.UserNotOwner("This user is not owner of this restaurant");
+        }
+
+        Menu menu = menuDAO.findMenuInRestaurant(menuTitle, restaurantId).orElseThrow(
+                () -> new MenuServiceExceptions.MenuNotFoundException("Menu with title " + menuTitle + " not found"));
+
+        FoodItem foodItem = foodItemDAO.findFoodItemById(restaurantId, foodId).orElseThrow(
+                () -> new RestaurantServiceExceptions.ItemNotFound("Item not Found"));
+
+        if (menu.getFoodItems().remove(foodItem)) {
+            menuDAO.update(menu);
+            return new MessageDto("Item removed from restaurant menu successfully");
+        } else {
+            throw new MenuServiceExceptions.FoodNotInMenu("Food is not in the menu");
+        }
+    }
 }

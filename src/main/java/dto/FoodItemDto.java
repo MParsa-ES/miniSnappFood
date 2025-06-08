@@ -30,12 +30,12 @@ public class FoodItemDto {
     @AllArgsConstructor
     public static class Response {
         private Long id;
-        private Long vendor_id;
         private String name;
+        private String imageBase64;
         private String description;
+        private Long vendor_id;
         private int price;
         private int supply;
-        private String imageBase64;
         private Set<String> keywords;
     }
 

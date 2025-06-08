@@ -62,12 +62,12 @@ public class FoodItemService {
 
         return new FoodItemDto.Response(
                 savedFood.getId(),
-                restaurant.getId(),
                 savedFood.getName(),
+                savedFood.getImageBase64(),
                 savedFood.getDescription(),
+                restaurant.getId(),
                 savedFood.getPrice(),
                 savedFood.getSupply(),
-                savedFood.getImageBase64(),
                 savedFood.getKeywords()
         );
 

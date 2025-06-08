@@ -8,6 +8,7 @@ import dao.BuyerDAO;
 import dao.FoodItemDAO;
 import dao.RestaurantDAO;
 import dao.UserDAO;
+import dto.BuyerDto;
 import dto.ErrorResponseDto;
 import dto.FoodItemDto;
 import dto.RestaurantDto;
@@ -44,8 +45,11 @@ public class BuyerHTTPHandler implements HttpHandler {
         String method = exchange.getRequestMethod();
 
         try {
-            if ("/vendors".equals(path) && "POST".equals(method)) {
+            if (path.equals("/vendors") && "POST".equals(method)) {
                 handleVendorsList(exchange);
+            } else if (path.matches("/vendors/\\d+") && "GET".equals(method)) {
+                Long id = Long.parseLong(path.split("/")[2]);
+                handleItemList(exchange, id);
             }
         } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid input: " + e.getMessage())));
@@ -79,6 +83,15 @@ public class BuyerHTTPHandler implements HttpHandler {
 
         List<RestaurantDto.Response> list = buyerService.GetVendorsList(requestDto.getSearch(), requestDto.getKeywords());
         Utils.sendResponse(exchange, 200, gson.toJson(list));
+    }
+
+    private void handleItemList(HttpExchange exchange, Long restaurantId) throws java.io.IOException {
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        }
+
+        BuyerDto.ItemList itemListDto = buyerService.GetItemList(restaurantId);
+        Utils.sendResponse(exchange, 200, gson.toJson(itemListDto));
     }
 
 }

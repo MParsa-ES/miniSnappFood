@@ -1,14 +1,21 @@
 package dao;
 
+import dto.MenuDto;
+import entity.FoodItem;
 import entity.Restaurant;
+import org.hibernate.Hibernate;
 import org.hibernate.Session;
+import org.hibernate.Transaction;
 import org.hibernate.query.Query;
 import util.HibernateUtil;
+
+import entity.Menu;
 
 import java.util.*;
 
 
 public class BuyerDAO {
+
     public List<Restaurant> SearchVendors(String searchTerm, List<String> keywords) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             StringBuilder hql = new StringBuilder("SELECT DISTINCT r FROM Restaurant r "); // Use SELECT DISTINCT r to avoid duplicate restaurants
@@ -52,6 +59,31 @@ public class BuyerDAO {
             e.printStackTrace();
             // Consider throwing a custom exception instead of a generic RuntimeException
             throw new RuntimeException("Error searching restaurants: " + e.getMessage(), e);
+        }
+    }
+
+    public Optional<Restaurant> findVendorWithMenuAndItems(Long id){
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+
+            Optional<Restaurant> optVendor = Optional.ofNullable(session.get(Restaurant.class, id));
+            if (optVendor.isPresent()) {
+                Restaurant vendor = optVendor.get();
+                Hibernate.initialize(vendor.getMenus());
+                for(Menu menu: vendor.getMenus()){
+                    Hibernate.initialize(menu.getFoodItems());
+                    for (FoodItem item : menu.getFoodItems()) {
+                        Hibernate.initialize(item.getKeywords());
+                    }
+                }
+            }
+
+            transaction.commit();
+            return optVendor;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Optional.empty();
         }
     }
 }

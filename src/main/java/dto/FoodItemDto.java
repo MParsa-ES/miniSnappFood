@@ -4,8 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import java.util.List; // استفاده از List برای حفظ ترتیب احتمالی و سادگی
-import java.util.Set;   // برای پاسخ می‌توانیم از Set استفاده کنیم
+import java.util.Set;
 
 @Getter
 @Setter
@@ -51,4 +50,5 @@ public class FoodItemDto {
         private int supply;
         private Set<String> keywords;
     }
+
 }

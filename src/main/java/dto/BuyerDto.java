@@ -26,4 +26,23 @@ public class BuyerDto {
 
     }
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class VendorSearch {
+        private String search;
+        private List<String> keywords;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ItemSearch {
+        private String search;
+        private int price;
+        private List<String> keywords;
+    }
+
 }

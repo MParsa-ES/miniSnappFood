@@ -89,4 +89,41 @@ public class BuyerService {
 
     }
 
+    public List<FoodItemDto.Response> GetItemsList(String search, int price, List<String> keywords) throws RestaurantServiceExceptions {
+
+        List<FoodItem> items = buyerDAO.GetItemList(search, price, keywords);
+        List<FoodItemDto.Response> responses = new ArrayList<>();
+        for (FoodItem item: items) {
+            responses.add(new FoodItemDto.Response(
+                    item.getId(),
+                    item.getName(),
+                    item.getImageBase64(),
+                    item.getDescription(),
+                    item.getRestaurant().getId(),
+                    item.getPrice(),
+                    item.getSupply(),
+                    item.getKeywords()
+            ));
+        }
+        return responses;
+    }
+
+    public FoodItemDto.Response GetItem(Long id) throws RestaurantServiceExceptions, MenuServiceExceptions {
+
+        FoodItem foodItem = buyerDAO.FindItem(id)
+                .orElseThrow(() -> new RestaurantServiceExceptions.ItemNotFound("Item not Found"));
+
+        return new FoodItemDto.Response(
+                foodItem.getId(),
+                foodItem.getName(),
+                foodItem.getImageBase64(),
+                foodItem.getDescription(),
+                foodItem.getRestaurant().getId(),
+                foodItem.getPrice(),
+                foodItem.getSupply(),
+                foodItem.getKeywords()
+        );
+
+    }
+
 }

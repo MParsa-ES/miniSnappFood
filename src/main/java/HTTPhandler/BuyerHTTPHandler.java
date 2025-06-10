@@ -46,10 +46,15 @@ public class BuyerHTTPHandler implements HttpHandler {
 
         try {
             if (path.equals("/vendors") && "POST".equals(method)) {
-                handleVendorsList(exchange);
+                handleVendorsSearch(exchange);
             } else if (path.matches("/vendors/\\d+") && "GET".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
                 handleItemList(exchange, id);
+            } else if (path.equals("/items") && "POST".equals(method)) {
+                handleSearchItems(exchange);
+            } else if (path.matches("/items/\\d+") && "GET".equals(method)) {
+                Long id = Long.parseLong(path.split("/")[2]);
+                handleGetItem(exchange, id);
             }
         } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid input: " + e.getMessage())));
@@ -61,7 +66,7 @@ public class BuyerHTTPHandler implements HttpHandler {
         }
     }
 
-    private void handleVendorsList(HttpExchange exchange) throws java.io.IOException {
+    private void handleVendorsSearch(HttpExchange exchange) throws java.io.IOException {
         if (Utils.checkUnathorizedMediaType(exchange)) {
             Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
             return;
@@ -71,9 +76,9 @@ public class BuyerHTTPHandler implements HttpHandler {
             Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
         }
 
-        RestaurantDto.VendorRequest requestDto;
+        BuyerDto.VendorSearch requestDto;
         try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
-            requestDto = gson.fromJson(reader, RestaurantDto.VendorRequest.class);
+            requestDto = gson.fromJson(reader, BuyerDto.VendorSearch.class);
 
             if (requestDto == null) {
                 Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
@@ -92,6 +97,40 @@ public class BuyerHTTPHandler implements HttpHandler {
 
         BuyerDto.ItemList itemListDto = buyerService.GetItemList(restaurantId);
         Utils.sendResponse(exchange, 200, gson.toJson(itemListDto));
+    }
+
+    private void handleSearchItems(HttpExchange exchange) throws java.io.IOException {
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
+            return;
+        }
+
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        }
+
+        BuyerDto.ItemSearch requestDto;
+        try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+            requestDto = gson.fromJson(reader, BuyerDto.ItemSearch.class);
+
+            if (requestDto == null) {
+                Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
+                return;
+            }
+        }
+
+        List<FoodItemDto.Response> list = buyerService.GetItemsList(requestDto.getSearch(), requestDto.getPrice() ,requestDto.getKeywords());
+        Utils.sendResponse(exchange, 200, gson.toJson(list));
+    }
+
+    private void handleGetItem(HttpExchange exchange, Long id) throws java.io.IOException {
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        }
+
+        FoodItemDto.Response itemDto = buyerService.GetItem(id);
+        Utils.sendResponse(exchange, 200, gson.toJson(itemDto));
+
     }
 
 }

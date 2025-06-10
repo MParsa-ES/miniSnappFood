@@ -7,6 +7,8 @@ import org.hibernate.Hibernate;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
+import service.exception.MenuServiceExceptions;
+import service.exception.RestaurantServiceExceptions;
 import util.HibernateUtil;
 
 import entity.Menu;
@@ -86,4 +88,72 @@ public class BuyerDAO {
             return Optional.empty();
         }
     }
+
+    public List<FoodItem> GetItemList(String searchTerm, Integer price, List<String> keywords) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+
+            StringBuilder hql = new StringBuilder("SELECT DISTINCT fi FROM FoodItem fi JOIN FETCH fi.restaurant LEFT JOIN FETCH fi.keywords ");
+
+
+            List<String> mainConditions = new ArrayList<>();
+            List<String> orConditions = new ArrayList<>();
+
+            Map<String, Object> params = new HashMap<>();
+
+            mainConditions.add("fi.menus IS NOT EMPTY");
+
+            if (searchTerm != null && !searchTerm.isBlank()) {
+                orConditions.add("(fi.name LIKE :searchTerm OR fi.description LIKE :searchTerm)");
+                params.put("searchTerm", "%" + searchTerm + "%");
+            }
+
+            if (keywords != null && !keywords.isEmpty()) {
+                hql.append("JOIN fi.keywords k_filter ");
+                orConditions.add("k_filter IN (:keywords)");
+                params.put("keywords", keywords);
+            }
+
+            if (!orConditions.isEmpty()) {
+                mainConditions.add("(" + String.join(" OR ", orConditions) + ")");
+            }
+
+            if (price != null && price > 0) {
+                mainConditions.add("fi.price <= :price");
+                params.put("price", price);
+            }
+
+            if (!mainConditions.isEmpty()) {
+                hql.append(" WHERE ");
+                hql.append(String.join(" AND ", mainConditions));
+            }
+
+            Query<FoodItem> query = session.createQuery(hql.toString(), FoodItem.class);
+
+            for (Map.Entry<String, Object> entry : params.entrySet()) {
+                if (entry.getValue() instanceof Collection) {
+                    query.setParameterList(entry.getKey(), (Collection<?>) entry.getValue());
+                } else {
+                    query.setParameter(entry.getKey(), entry.getValue());
+                }
+            }
+
+            return query.getResultList();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error searching food items: " + e.getMessage(), e);
+        }
+    }
+
+    public Optional<FoodItem> FindItem(Long id) throws RestaurantServiceExceptions {
+            try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+                Query<FoodItem> query = session.createQuery("SELECT foodItem FROM FoodItem foodItem JOIN FETCH foodItem.restaurant LEFT JOIN FETCH foodItem.keywords WHERE foodItem.id = :id", FoodItem.class);
+                query.setParameter("id", id);
+                return query.uniqueResultOptional();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return Optional.empty();
+            }
+    }
+
 }

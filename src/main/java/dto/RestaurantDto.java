@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -41,15 +42,6 @@ public class RestaurantDto {
         private int tax_fee;
         private int additional_fee;
 
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class VendorRequest {
-        private String search;
-        private List<String> keywords;
     }
 
 }

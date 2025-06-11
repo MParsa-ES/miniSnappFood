@@ -55,6 +55,8 @@ public class BuyerHTTPHandler implements HttpHandler {
             } else if (path.matches("/items/\\d+") && "GET".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
                 handleGetItem(exchange, id);
+            } else if (path.equals("/favorites") && "GET".equals(method)) {
+                handleGetFavorites(exchange);
             }
         } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid input: " + e.getMessage())));
@@ -130,6 +132,18 @@ public class BuyerHTTPHandler implements HttpHandler {
 
         FoodItemDto.Response itemDto = buyerService.GetItem(id);
         Utils.sendResponse(exchange, 200, gson.toJson(itemDto));
+
+    }
+
+    private void handleGetFavorites(HttpExchange exchange) throws java.io.IOException {
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        }
+        String token = exchange.getRequestHeaders().getFirst("Authorization");
+        String phone = JwtUtil.validateToken(token);
+
+        List<RestaurantDto.Response> list = buyerService.getFavouriteRestaurants(phone);
+        Utils.sendResponse(exchange, 200, gson.toJson(list));
 
     }
 

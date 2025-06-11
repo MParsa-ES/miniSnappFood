@@ -3,12 +3,14 @@ package dao;
 import dto.MenuDto;
 import entity.FoodItem;
 import entity.Restaurant;
+import entity.User;
 import org.hibernate.Hibernate;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
 import service.exception.MenuServiceExceptions;
 import service.exception.RestaurantServiceExceptions;
+import service.exception.UserNotFoundException;
 import util.HibernateUtil;
 
 import entity.Menu;
@@ -89,7 +91,7 @@ public class BuyerDAO {
         }
     }
 
-    public List<FoodItem> GetItemList(String searchTerm, Integer price, List<String> keywords) {
+    public List<FoodItem> getItemList(String searchTerm, Integer price, List<String> keywords) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
 
             StringBuilder hql = new StringBuilder("SELECT DISTINCT fi FROM FoodItem fi JOIN FETCH fi.restaurant LEFT JOIN FETCH fi.keywords ");
@@ -145,15 +147,26 @@ public class BuyerDAO {
         }
     }
 
-    public Optional<FoodItem> FindItem(Long id) throws RestaurantServiceExceptions {
-            try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-                Query<FoodItem> query = session.createQuery("SELECT foodItem FROM FoodItem foodItem JOIN FETCH foodItem.restaurant LEFT JOIN FETCH foodItem.keywords WHERE foodItem.id = :id", FoodItem.class);
-                query.setParameter("id", id);
-                return query.uniqueResultOptional();
-            } catch (Exception e) {
-                e.printStackTrace();
-                return Optional.empty();
-            }
+    public Optional<FoodItem> findItem(Long id) throws RestaurantServiceExceptions {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<FoodItem> query = session.createQuery("SELECT foodItem FROM FoodItem foodItem JOIN FETCH foodItem.restaurant LEFT JOIN FETCH foodItem.keywords WHERE foodItem.id = :id", FoodItem.class);
+            query.setParameter("id", id);
+            return query.uniqueResultOptional();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Optional.empty();
+        }
+    }
+
+    public Optional<User> findUSerWithFavouriteRestaurants(String phone) throws UserNotFoundException {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<User> query = session.createQuery("SELECT user FROM User user LEFT JOIN FETCH user.favoriteRestaurants WHERE user.phone = :phone", User.class);
+            query.setParameter("phone", phone);
+            return query.uniqueResultOptional();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Optional.empty();
+        }
     }
 
 }

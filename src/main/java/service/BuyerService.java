@@ -10,8 +10,10 @@ import dto.RestaurantDto;
 import entity.FoodItem;
 import entity.Menu;
 import entity.Restaurant;
+import entity.User;
 import service.exception.MenuServiceExceptions;
 import service.exception.RestaurantServiceExceptions;
+import service.exception.UserNotFoundException;
 
 import java.util.*;
 
@@ -91,7 +93,7 @@ public class BuyerService {
 
     public List<FoodItemDto.Response> GetItemsList(String search, int price, List<String> keywords) throws RestaurantServiceExceptions {
 
-        List<FoodItem> items = buyerDAO.GetItemList(search, price, keywords);
+        List<FoodItem> items = buyerDAO.getItemList(search, price, keywords);
         List<FoodItemDto.Response> responses = new ArrayList<>();
         for (FoodItem item: items) {
             responses.add(new FoodItemDto.Response(
@@ -110,7 +112,7 @@ public class BuyerService {
 
     public FoodItemDto.Response GetItem(Long id) throws RestaurantServiceExceptions, MenuServiceExceptions {
 
-        FoodItem foodItem = buyerDAO.FindItem(id)
+        FoodItem foodItem = buyerDAO.findItem(id)
                 .orElseThrow(() -> new RestaurantServiceExceptions.ItemNotFound("Item not Found"));
 
         return new FoodItemDto.Response(
@@ -123,6 +125,28 @@ public class BuyerService {
                 foodItem.getSupply(),
                 foodItem.getKeywords()
         );
+
+    }
+
+    public List<RestaurantDto.Response> getFavouriteRestaurants(String phone) throws RestaurantServiceExceptions {
+
+        User user = buyerDAO.findUSerWithFavouriteRestaurants(phone)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        List<RestaurantDto.Response> responses = new ArrayList<>();
+        for(Restaurant restaurant: user.getFavoriteRestaurants()){
+            responses.add(new RestaurantDto.Response(
+                    restaurant.getId(),
+                    restaurant.getName(),
+                    restaurant.getAddress(),
+                    restaurant.getPhone(),
+                    restaurant.getLogo(),
+                    restaurant.getTaxFee(),
+                    restaurant.getAdditionalFee()
+            ));
+        }
+
+        return responses;
 
     }
 

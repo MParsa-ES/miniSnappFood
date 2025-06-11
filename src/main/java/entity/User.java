@@ -5,7 +5,9 @@ import lombok.Getter;
 import lombok.Setter;
 import entity.Role;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 
 @Entity
@@ -41,6 +43,15 @@ public class User {
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "profile_id" , nullable = false)
     private Profile profile;
+
+    @ManyToMany(fetch = FetchType.LAZY) // LAZY برای عملکرد بهتر توصیه می‌شود
+    @JoinTable(
+            name = "user_favorite_restaurants",  // نام جدول واسط که ساخته می‌شود
+            joinColumns = @JoinColumn(name = "user_id"),         // کلید خارجی به سمت جدول User
+            inverseJoinColumns = @JoinColumn(name = "restaurant_id") // کلید خارجی به سمت جدول Restaurant
+    )
+    private Set<Restaurant> favoriteRestaurants = new HashSet<>();
+
 
     public User(){}
 

@@ -55,6 +55,8 @@ public class OrderHTTPHandler implements HttpHandler {
         try {
             if (path.equals("/orders") && method.equals("POST")) {
                 handleCreateOrder(exchange);
+            } else if (path.equals("/orders/history") && method.equals("GET")) {
+                handleGetHistory(exchange);
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Order endpoint not found")));
             }
@@ -105,4 +107,33 @@ public class OrderHTTPHandler implements HttpHandler {
 
     }
 
+    private void handleGetHistory(HttpExchange exchange) throws IOException {
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+            return;
+        }
+
+        String query = exchange.getRequestURI().getQuery();
+
+        String vendor = null;
+        String search = null;
+
+        if (query != null) {
+            for (String param : query.split("&")) {
+                String[] pair = param.split("=");
+                if (pair.length == 2) {
+                    String key = pair[0];
+                    String value = pair[1];
+
+                    if (key.equals("vendor"))
+                        vendor = value;
+                    if (key.equals("search"))
+                        search = value;
+                }
+            }
+        }
+
+        String customerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
+        Utils.sendResponse(exchange, 200, gson.toJson(orderService.getOrderHistory(customerUserPhone, vendor, search)));
+    }
 }

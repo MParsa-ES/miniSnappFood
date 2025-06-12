@@ -14,6 +14,7 @@ import service.exception.UserNotFoundException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 
+
 @AllArgsConstructor
 public class OrderService {
 
@@ -81,7 +82,6 @@ public class OrderService {
         BigDecimal taxFee = BigDecimal.valueOf(restaurant.getTaxFee());
         BigDecimal additionalFee = BigDecimal.valueOf(restaurant.getAdditionalFee());
         BigDecimal totalPrice = rawPrice.add(taxFee).add(additionalFee);
-        OrderDto.OrderResponse response = new OrderDto.OrderResponse();
 
         Order order = new Order();
         order.setCustomer(customer);
@@ -111,6 +111,22 @@ public class OrderService {
         return mapOrderToResponseDto(order);
     }
 
+    public ArrayList<OrderDto.OrderResponse> getOrderHistory(String customerUserPhone, String vendorName, String foodName) throws
+            UserNotFoundException, OrderServiceExceptions.UserNotBuyerException {
+        User customer = userDAO.findByPhone(customerUserPhone).
+                orElseThrow(() -> new UserNotFoundException("Customer not found"));
+
+        if (!customer.getRole().equals(Role.BUYER)) {
+            throw new OrderServiceExceptions.UserNotBuyerException("This user is not a buyer");
+        }
+
+        ArrayList<OrderDto.OrderResponse> response = new ArrayList<>();
+        for (Order order : orderDAO.findHistoryByCustomer(customer.getId(), vendorName, foodName)){
+            response.add(mapOrderToResponseDto(order));
+        }
+        return response;
+    }
+
     private OrderDto.OrderResponse mapOrderToResponseDto(Order order) {
         OrderDto.OrderResponse response = new OrderDto.OrderResponse();
         response.setId(order.getId());
@@ -127,7 +143,7 @@ public class OrderService {
         response.setCreated_at(order.getCreatedAt().toString());
         response.setUpdated_at(order.getUpdatedAt().toString());
 
-        // Get the item IDs for the response
+
         ArrayList<Long> itemIds = new ArrayList<>();
         for (OrderItem item : order.getItems()) {
             itemIds.add(item.getFoodItem().getId());

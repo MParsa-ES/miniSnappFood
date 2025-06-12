@@ -1,6 +1,7 @@
 package dao;
 
 import dto.MenuDto;
+import dto.MessageDto;
 import entity.FoodItem;
 import entity.Restaurant;
 import entity.User;
@@ -158,7 +159,7 @@ public class BuyerDAO {
         }
     }
 
-    public Optional<User> findUSerWithFavouriteRestaurants(String phone) throws UserNotFoundException {
+    public Optional<User> findUserWithFavoriteRestaurants(String phone) throws UserNotFoundException {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Query<User> query = session.createQuery("SELECT user FROM User user LEFT JOIN FETCH user.favoriteRestaurants WHERE user.phone = :phone", User.class);
             query.setParameter("phone", phone);

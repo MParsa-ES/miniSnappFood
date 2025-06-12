@@ -8,10 +8,7 @@ import dao.BuyerDAO;
 import dao.FoodItemDAO;
 import dao.RestaurantDAO;
 import dao.UserDAO;
-import dto.BuyerDto;
-import dto.ErrorResponseDto;
-import dto.FoodItemDto;
-import dto.RestaurantDto;
+import dto.*;
 import io.jsonwebtoken.io.IOException;
 import service.BuyerService;
 import service.RestaurantService;
@@ -57,6 +54,12 @@ public class BuyerHTTPHandler implements HttpHandler {
                 handleGetItem(exchange, id);
             } else if (path.equals("/favorites") && "GET".equals(method)) {
                 handleGetFavorites(exchange);
+            } else if (path.matches("/favorites/\\d+") && "POST".equals(method)) {
+                Long id = Long.parseLong(path.split("/")[2]);
+                handleAddFavorite(exchange, id);
+            } else if (path.matches("/favorites/\\d+") && "DELETE".equals(method)) {
+                Long id = Long.parseLong(path.split("/")[2]);
+                handleRemoveFavorite(exchange, id);
             }
         } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid input: " + e.getMessage())));
@@ -142,8 +145,34 @@ public class BuyerHTTPHandler implements HttpHandler {
         String token = exchange.getRequestHeaders().getFirst("Authorization");
         String phone = JwtUtil.validateToken(token);
 
-        List<RestaurantDto.Response> list = buyerService.getFavouriteRestaurants(phone);
+        List<RestaurantDto.Response> list = buyerService.getFavoriteRestaurants(phone);
         Utils.sendResponse(exchange, 200, gson.toJson(list));
+
+    }
+
+    private void handleAddFavorite(HttpExchange exchange, Long restaurantId) throws java.io.IOException {
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        }
+
+        String token = exchange.getRequestHeaders().getFirst("Authorization");
+        String phone = JwtUtil.validateToken(token);
+
+        MessageDto messageDto = buyerService.addFavoriteRestaurant(restaurantId, phone);
+        Utils.sendResponse(exchange, 200, gson.toJson(messageDto));
+
+    }
+
+    private void handleRemoveFavorite(HttpExchange exchange, Long restaurantId) throws java.io.IOException {
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        }
+
+        String token = exchange.getRequestHeaders().getFirst("Authorization");
+        String phone = JwtUtil.validateToken(token);
+
+        MessageDto messageDto = buyerService.removeFavoriteRestaurant(restaurantId, phone);
+        Utils.sendResponse(exchange, 200, gson.toJson(messageDto));
 
     }
 

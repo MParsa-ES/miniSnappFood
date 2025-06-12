@@ -6,11 +6,13 @@ import dao.RestaurantDAO;
 import dao.UserDAO;
 import dto.BuyerDto;
 import dto.FoodItemDto;
+import dto.MessageDto;
 import dto.RestaurantDto;
 import entity.FoodItem;
 import entity.Menu;
 import entity.Restaurant;
 import entity.User;
+import org.hibernate.Session;
 import service.exception.MenuServiceExceptions;
 import service.exception.RestaurantServiceExceptions;
 import service.exception.UserNotFoundException;
@@ -128,9 +130,9 @@ public class BuyerService {
 
     }
 
-    public List<RestaurantDto.Response> getFavouriteRestaurants(String phone) throws RestaurantServiceExceptions {
+    public List<RestaurantDto.Response> getFavoriteRestaurants(String phone) throws RestaurantServiceExceptions {
 
-        User user = buyerDAO.findUSerWithFavouriteRestaurants(phone)
+        User user = buyerDAO.findUserWithFavoriteRestaurants(phone)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         List<RestaurantDto.Response> responses = new ArrayList<>();
@@ -147,6 +149,42 @@ public class BuyerService {
         }
 
         return responses;
+
+    }
+
+    public MessageDto addFavoriteRestaurant(Long restaurantId, String phone) throws RestaurantServiceExceptions, MenuServiceExceptions {
+
+        User user = buyerDAO.findUserWithFavoriteRestaurants(phone)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        Restaurant restaurant = restaurantDAO.findRestaurantById(restaurantId)
+                .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found"));
+
+        if(user.getFavoriteRestaurants().contains(restaurant)){
+            return new MessageDto("Restaurant is already favourite");
+        }
+
+        user.addFavoriteRestaurant(restaurant);
+        userDAO.update(user);
+        return new MessageDto("Restaurant added to favourites successfully ");
+
+    }
+
+    public MessageDto removeFavoriteRestaurant(Long restaurantId, String phone) throws RestaurantServiceExceptions, MenuServiceExceptions {
+
+        User user = buyerDAO.findUserWithFavoriteRestaurants(phone)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        Restaurant restaurant = restaurantDAO.findRestaurantById(restaurantId)
+                .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found"));
+
+        if(!user.getFavoriteRestaurants().contains(restaurant)){
+            return new MessageDto("Restaurant is not favourite");
+        }
+
+        user.removeFavoriteRestaurant(restaurant);
+        userDAO.update(user);
+        return new MessageDto("Restaurant removed from favourites successfully ");
 
     }
 

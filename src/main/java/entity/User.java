@@ -44,11 +44,11 @@ public class User {
     @JoinColumn(name = "profile_id" , nullable = false)
     private Profile profile;
 
-    @ManyToMany(fetch = FetchType.LAZY) // LAZY برای عملکرد بهتر توصیه می‌شود
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-            name = "user_favorite_restaurants",  // نام جدول واسط که ساخته می‌شود
-            joinColumns = @JoinColumn(name = "user_id"),         // کلید خارجی به سمت جدول User
-            inverseJoinColumns = @JoinColumn(name = "restaurant_id") // کلید خارجی به سمت جدول Restaurant
+            name = "user_favorite_restaurants",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "restaurant_id")
     )
     private Set<Restaurant> favoriteRestaurants = new HashSet<>();
 
@@ -68,4 +68,13 @@ public class User {
     public boolean equals(Object o) {
         return o instanceof User && ((User) o).getId().equals(id);
     }
+
+    public void addFavoriteRestaurant(Restaurant restaurant) {
+        favoriteRestaurants.add(restaurant);
+    }
+
+    public void removeFavoriteRestaurant(Restaurant restaurant) {
+        favoriteRestaurants.remove(restaurant);
+    }
+
 }

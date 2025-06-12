@@ -1,9 +1,6 @@
 package org.example;
 
-import HTTPhandler.BuyerHTTPHandler;
-import HTTPhandler.RestaurantHttpHandler;
-import HTTPhandler.UserHTTPHandler;
-import HTTPhandler.ProfileHTTPHandler;
+import HTTPhandler.*;
 import com.sun.net.httpserver.HttpServer;
 
 import java.net.InetSocketAddress;
@@ -21,6 +18,7 @@ public class Main {
         server.createContext("/vendors", new BuyerHTTPHandler());
         server.createContext("/items", new BuyerHTTPHandler());
         server.createContext("/favorites", new BuyerHTTPHandler());
+        server.createContext("/orders", new OrderHTTPHandler());
         server.start();
         System.out.println("Server started on http://localhost:8080");
     }

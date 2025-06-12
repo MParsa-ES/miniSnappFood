@@ -23,7 +23,7 @@
              - create: recreates schema every time (⚠️ deletes data!)
              - validate: checks schema matches your entity classes
         -->
-        <property name="hibernate.hbm2ddl.auto">create</property>
+        <property name="hibernate.hbm2ddl.auto">update</property>
 
         <!-- 6. Show SQL queries in the console -->
         <property name="hibernate.show_sql">true</property>
@@ -36,6 +36,8 @@
         <mapping class="entity.Menu"/>
         <mapping class="entity.FoodItem"/>
         <mapping class="entity.Category"/>
+        <mapping class="entity.Order"/>
+        <mapping class="entity.OrderItem"/>
 
     </session-factory>
 </hibernate-configuration>

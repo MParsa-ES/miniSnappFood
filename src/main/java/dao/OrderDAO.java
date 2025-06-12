@@ -1,7 +1,6 @@
 package dao;
 
 import entity.Order;
-import org.hibernate.Hibernate;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
@@ -10,6 +9,7 @@ import util.HibernateUtil;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 
 public class OrderDAO {
@@ -67,4 +67,16 @@ public class OrderDAO {
         }
     }
 
+    public Optional<Order> findOrderById(Long id) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<Order> query = session.createQuery(
+                    "SELECT o FROM Order o LEFT JOIN FETCH o.items LEFT JOIN FETCH o.customer WHERE o.id = :orderId", Order.class);
+            query.setParameter("orderId", id);
+            return query.uniqueResultOptional();
+        } catch (Exception e) {
+            System.err.println("Error finding order by id " + id + ": " + e.getMessage());
+            e.printStackTrace();
+            return Optional.empty();
+        }
+    }
 }

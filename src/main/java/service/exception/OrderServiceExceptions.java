@@ -12,4 +12,16 @@ public class OrderServiceExceptions extends RuntimeException {
             super(message);
         }
     }
+
+    public static class OrderNotFoundException extends RuntimeException {
+        public OrderNotFoundException(String message) {
+            super(message);
+        }
+    }
+
+    public static class NotOwnerOfOrderException extends RuntimeException {
+        public NotOwnerOfOrderException(String message) {
+            super(message);
+        }
+    }
 }

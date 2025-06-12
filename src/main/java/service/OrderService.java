@@ -121,10 +121,29 @@ public class OrderService {
         }
 
         ArrayList<OrderDto.OrderResponse> response = new ArrayList<>();
-        for (Order order : orderDAO.findHistoryByCustomer(customer.getId(), vendorName, foodName)){
+        for (Order order : orderDAO.findHistoryByCustomer(customer.getId(), vendorName, foodName)) {
             response.add(mapOrderToResponseDto(order));
         }
         return response;
+    }
+
+    public OrderDto.OrderResponse getOrderById(String customerUserPhone, Long orderId) {
+        User customer = userDAO.findByPhone(customerUserPhone).
+                orElseThrow(() -> new UserNotFoundException("Customer not found"));
+
+        if (!customer.getRole().equals(Role.BUYER)) {
+            throw new OrderServiceExceptions.UserNotBuyerException("This user is not a buyer");
+        }
+
+        Order order = orderDAO.findOrderById(orderId).
+                orElseThrow(() -> new OrderServiceExceptions.OrderNotFoundException
+                        ("Order with ID" + orderId + " not found"));
+
+        if (!order.getCustomer().equals(customer)) {
+            throw new OrderServiceExceptions.NotOwnerOfOrderException("You are not the owner of this order");
+        }
+
+        return mapOrderToResponseDto(order);
     }
 
     private OrderDto.OrderResponse mapOrderToResponseDto(Order order) {
@@ -152,4 +171,5 @@ public class OrderService {
 
         return response;
     }
+
 }

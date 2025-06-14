@@ -25,15 +25,15 @@ public class OrderService {
 
 
     public OrderDto.OrderResponse createOrder(OrderDto.CreateRequest requestDto, String customerUserPhone) throws
-            OrderServiceExceptions.UserNotBuyerException,
-            OrderServiceExceptions.ItemOutOfStockException,
+            OrderServiceExceptions.UserNotBuyer,
+            OrderServiceExceptions.ItemOutOfStock,
             UserNotFoundException, RestaurantServiceExceptions.RestaurantNotFound,
             IllegalArgumentException, RestaurantServiceExceptions.ItemNotFound {
         User customer = userDAO.findByPhone(customerUserPhone).
                 orElseThrow(() -> new UserNotFoundException("Customer not found"));
 
         if (!customer.getRole().equals(Role.BUYER)) {
-            throw new OrderServiceExceptions.UserNotBuyerException("This user is not a buyer");
+            throw new OrderServiceExceptions.UserNotBuyer("This user is not a buyer");
         }
 
         Restaurant restaurant = restaurantDAO.findRestaurantById(requestDto.getVendor_id())
@@ -62,7 +62,7 @@ public class OrderService {
 
 
             if (requestItem.getQuantity() > food.getSupply())
-                throw new OrderServiceExceptions.ItemOutOfStockException("Food " + food.getName() + " supply is not enough");
+                throw new OrderServiceExceptions.ItemOutOfStock("Food " + food.getName() + " supply is not enough");
 
 
             BigDecimal thisItemTotalPrice = new BigDecimal(food.getPrice()).multiply(new BigDecimal(requestItem.getQuantity()));
@@ -112,12 +112,12 @@ public class OrderService {
     }
 
     public ArrayList<OrderDto.OrderResponse> getOrderHistory(String customerUserPhone, String vendorName, String foodName) throws
-            UserNotFoundException, OrderServiceExceptions.UserNotBuyerException {
+            UserNotFoundException, OrderServiceExceptions.UserNotBuyer {
         User customer = userDAO.findByPhone(customerUserPhone).
                 orElseThrow(() -> new UserNotFoundException("Customer not found"));
 
         if (!customer.getRole().equals(Role.BUYER)) {
-            throw new OrderServiceExceptions.UserNotBuyerException("This user is not a buyer");
+            throw new OrderServiceExceptions.UserNotBuyer("This user is not a buyer");
         }
 
         ArrayList<OrderDto.OrderResponse> response = new ArrayList<>();
@@ -127,23 +127,53 @@ public class OrderService {
         return response;
     }
 
-    public OrderDto.OrderResponse getOrderById(String customerUserPhone, Long orderId) {
+    public OrderDto.OrderResponse getOrderById(String customerUserPhone, Long orderId) throws
+            UserNotFoundException, OrderServiceExceptions.OrderNotFound,
+            OrderServiceExceptions.NotOwnerOfOrder, OrderServiceExceptions.UserNotBuyer {
+
         User customer = userDAO.findByPhone(customerUserPhone).
                 orElseThrow(() -> new UserNotFoundException("Customer not found"));
 
         if (!customer.getRole().equals(Role.BUYER)) {
-            throw new OrderServiceExceptions.UserNotBuyerException("This user is not a buyer");
+            throw new OrderServiceExceptions.UserNotBuyer("This user is not a buyer");
         }
 
         Order order = orderDAO.findOrderById(orderId).
-                orElseThrow(() -> new OrderServiceExceptions.OrderNotFoundException
+                orElseThrow(() -> new OrderServiceExceptions.OrderNotFound
                         ("Order with ID" + orderId + " not found"));
 
         if (!order.getCustomer().equals(customer)) {
-            throw new OrderServiceExceptions.NotOwnerOfOrderException("You are not the owner of this order");
+            throw new OrderServiceExceptions.NotOwnerOfOrder("You are not the owner of this order");
         }
 
         return mapOrderToResponseDto(order);
+    }
+
+    public ArrayList<OrderDto.OrderResponse> getRestaurantOrders(String ownerUserPhone, Long restaurantId, String status, String search, String user, String courier) throws
+            UserNotFoundException, RestaurantServiceExceptions.UserNotSeller,
+            RestaurantServiceExceptions.RestaurantNotFound, RestaurantServiceExceptions.UserNotOwner {
+
+        User owner = userDAO.findByPhone(ownerUserPhone).
+                orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (!owner.getRole().equals(Role.SELLER)) {
+            throw new RestaurantServiceExceptions.UserNotSeller("This user is not a seller");
+        }
+
+        Restaurant restaurant = restaurantDAO.findRestaurantById(restaurantId).orElseThrow(
+                () -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant with ID" + restaurantId + " not found"));
+
+        if (!restaurant.getOwner().equals(owner)) {
+            throw new RestaurantServiceExceptions.UserNotOwner("You are not the owner of this restaurant");
+        }
+
+        ArrayList<OrderDto.OrderResponse> response = new ArrayList<>();
+
+        for (Order order : orderDAO.findByRestaurantId(restaurantId, status, search, user, courier)) {
+            response.add(mapOrderToResponseDto(order));
+        }
+
+        return response;
     }
 
     private OrderDto.OrderResponse mapOrderToResponseDto(Order order) {

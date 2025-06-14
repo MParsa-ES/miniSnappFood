@@ -1,6 +1,7 @@
 package dao;
 
 import entity.Order;
+import entity.OrderStatus;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
@@ -77,6 +78,51 @@ public class OrderDAO {
             System.err.println("Error finding order by id " + id + ": " + e.getMessage());
             e.printStackTrace();
             return Optional.empty();
+        }
+    }
+
+    public List<Order> findByRestaurantId(Long restaurantId, String status, String search, String user, String courier) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+
+            Map<String, Object> params = new HashMap<>();
+
+            StringBuilder hqlBuilder = new StringBuilder("SELECT DISTINCT o FROM Order o " +
+                    "LEFT JOIN FETCH o.customer c " +
+                    "LEFT JOIN FETCH o.items oi " +
+                    "LEFT JOIN oi.foodItem fi " +
+                    "WHERE o.restaurant.id = :restaurantId");
+            params.put("restaurantId", restaurantId);
+
+            if (status != null && !status.isBlank()) {
+                hqlBuilder.append(" AND o.status = :status");
+                params.put("status", OrderStatus.valueOf(status.toUpperCase()));
+            }
+            if (search != null && !search.isBlank()) {
+                hqlBuilder.append(" AND fi.name LIKE :searchQuery");
+                params.put("searchQuery", "%" + search + "%");
+            }
+            if (user != null && !user.isBlank()) {
+                hqlBuilder.append(" AND (c.fullName LIKE :userName)");
+                params.put("userName", "%" + user + "%");
+            }
+
+            // TODO: add after finishing the courier part
+//            if (courier != null && !courier.isBlank()) {
+//                hqlBuilder.append(" AND (o.courier.name LIKE :courierName)");
+//            }
+
+            hqlBuilder.append(" ORDER BY o.createdAt DESC");
+
+            Query<Order> query = session.createQuery(hqlBuilder.toString(), Order.class);
+            for (Map.Entry<String, Object> entry : params.entrySet()) {
+                query.setParameter(entry.getKey(), entry.getValue());
+            }
+
+            return query.list();
+        } catch (Exception e) {
+            System.err.println("Error finding order by restaurantId " + restaurantId + ": " + e.getMessage());
+            e.printStackTrace();
+            return List.of();
         }
     }
 }

@@ -1,26 +1,27 @@
 package service.exception;
 
 public class OrderServiceExceptions extends RuntimeException {
-    public static class UserNotBuyerException extends RuntimeException {
-       public UserNotBuyerException(String message) {
+
+    public static class UserNotBuyer extends RuntimeException {
+       public UserNotBuyer(String message) {
          super(message);
        }
     }
 
-    public static class ItemOutOfStockException extends RuntimeException {
-        public ItemOutOfStockException(String message) {
+    public static class ItemOutOfStock extends RuntimeException {
+        public ItemOutOfStock(String message) {
             super(message);
         }
     }
 
-    public static class OrderNotFoundException extends RuntimeException {
-        public OrderNotFoundException(String message) {
+    public static class OrderNotFound extends RuntimeException {
+        public OrderNotFound(String message) {
             super(message);
         }
     }
 
-    public static class NotOwnerOfOrderException extends RuntimeException {
-        public NotOwnerOfOrderException(String message) {
+    public static class NotOwnerOfOrder extends RuntimeException {
+        public NotOwnerOfOrder(String message) {
             super(message);
         }
     }

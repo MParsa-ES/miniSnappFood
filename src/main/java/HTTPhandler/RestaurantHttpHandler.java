@@ -5,22 +5,19 @@ import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
-import dao.FoodItemDAO;
-import dao.MenuDAO;
+import dao.*;
 import dto.ErrorResponseDto;
 import dto.FoodItemDto;
 import dto.MenuDto;
 import dto.RestaurantDto;
 import service.FoodItemService;
 import service.MenuService;
+import service.OrderService;
 import service.RestaurantService;
 
 import service.exception.MenuServiceExceptions;
 import service.exception.UserNotFoundException;
 import service.exception.RestaurantServiceExceptions;
-
-import dao.UserDAO;
-import dao.RestaurantDAO;
 
 import util.JwtUtil;
 import util.RateLimiter;
@@ -36,11 +33,13 @@ public class RestaurantHttpHandler implements HttpHandler {
     private final RestaurantService restaurantService;
     private final FoodItemService foodItemService;
     private final MenuService menuService;
+    private final OrderService orderService;
 
     public RestaurantHttpHandler() {
         this.restaurantService = new RestaurantService(new UserDAO(), new RestaurantDAO());
         this.foodItemService = new FoodItemService(new UserDAO(), new RestaurantDAO(), new FoodItemDAO());
         this.menuService = new MenuService(new UserDAO(), new MenuDAO(), new RestaurantDAO(), new FoodItemDAO());
+        this.orderService = new OrderService(new UserDAO(), new RestaurantDAO(), new FoodItemDAO(), new OrderDAO());
     }
 
     @Override
@@ -105,6 +104,11 @@ public class RestaurantHttpHandler implements HttpHandler {
                 String title = path.split("/")[4];
                 Long foodId = Long.parseLong(path.split("/")[5]);
                 handleDeleteFoodFromMenu(exchange, restaurantId, title, foodId);
+
+
+            } else if (path.matches("^/restaurants/\\d+/orders$") && "GET".equals(method)) {
+                Long restaurantId = Long.parseLong(path.split("/")[2]);
+                handleGetRestaurantOrders(exchange , restaurantId);
 
 
             } else {
@@ -350,6 +354,50 @@ public class RestaurantHttpHandler implements HttpHandler {
 
         String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(menuService.deleteFoodFromMenu(ownerUserPhone, restaurantId, menuTitle, foodId)));
+    }
+
+    private void handleGetRestaurantOrders(HttpExchange exchange, Long restaurantId) throws IOException {
+
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+            return;
+        }
+        String query = exchange.getRequestURI().getQuery();
+
+        String status = null;
+        String search = null;
+        String user = null;
+        String courier = null;
+
+        if (query != null) {
+            for (String params : query.split("&")) {
+                String[] pair = params.split("=", 2);
+                if (pair.length == 2) {
+                    if (pair[0].equals("status")) {
+                        status = java.net.URLDecoder.decode(pair[1], StandardCharsets.UTF_8);
+                    }
+
+                    if (pair[0].equals("search")) {
+                        search = java.net.URLDecoder.decode(pair[1], StandardCharsets.UTF_8);
+                    }
+
+                    if (pair[0].equals("user")) {
+                        user = java.net.URLDecoder.decode(pair[1], StandardCharsets.UTF_8);
+                    }
+
+                    if (pair[0].equals("courier")) {
+                        courier = java.net.URLDecoder.decode(pair[1], StandardCharsets.UTF_8);
+                    }
+                }
+            }
+        }
+
+
+        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
+        Utils.sendResponse(exchange, 200,
+                gson.toJson(orderService.getRestaurantOrders
+                        (ownerUserPhone, restaurantId, status, search, user, courier)));
+
     }
 
 }

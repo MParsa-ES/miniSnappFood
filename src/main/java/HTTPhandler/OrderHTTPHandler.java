@@ -64,11 +64,11 @@ public class OrderHTTPHandler implements HttpHandler {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Order endpoint not found")));
             }
         } catch (UserNotFoundException | RestaurantServiceExceptions.RestaurantNotFound |
-                 RestaurantServiceExceptions.ItemNotFound | OrderServiceExceptions.OrderNotFoundException e) {
+                 RestaurantServiceExceptions.ItemNotFound | OrderServiceExceptions.OrderNotFound e) {
             Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
-        } catch (OrderServiceExceptions.UserNotBuyerException | OrderServiceExceptions.NotOwnerOfOrderException e){
+        } catch (OrderServiceExceptions.UserNotBuyer | OrderServiceExceptions.NotOwnerOfOrder e){
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
-        } catch (OrderServiceExceptions.ItemOutOfStockException e) {
+        } catch (OrderServiceExceptions.ItemOutOfStock e) {
             Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto(e.getMessage())));
@@ -126,7 +126,7 @@ public class OrderHTTPHandler implements HttpHandler {
                 String[] pair = param.split("=");
                 if (pair.length == 2) {
                     String key = pair[0];
-                    String value = pair[1];
+                    String value = java.net.URLDecoder.decode(pair[1], StandardCharsets.UTF_8);
 
                     if (key.equals("vendor"))
                         vendor = value;

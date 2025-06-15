@@ -1,13 +1,10 @@
 package service;
 
-import com.sun.net.httpserver.HttpExchange;
 import dao.FoodItemDAO;
 import dao.RestaurantDAO;
 import dao.UserDAO;
 import dto.FoodItemDto;
-import dao.RestaurantDAO;
 import dto.MessageDto;
-import dto.RestaurantDto;
 import entity.FoodItem;
 import entity.Restaurant;
 import entity.Role;
@@ -15,8 +12,6 @@ import entity.User;
 import service.exception.MenuServiceExceptions;
 import service.exception.RestaurantServiceExceptions;
 import service.exception.UserNotFoundException;
-
-import java.util.NoSuchElementException;
 
 public class FoodItemService {
     private final UserDAO userDAO;
@@ -42,7 +37,7 @@ public class FoodItemService {
             throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
         }
 
-        Restaurant restaurant = restaurantDAO.findRestaurant(owner)
+        Restaurant restaurant = restaurantDAO.findRestaurantByOwner(owner)
                 .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Forbidden request"));
 
         if (foodItemDAO.checkFoodItem(requestDto, restaurant)) {

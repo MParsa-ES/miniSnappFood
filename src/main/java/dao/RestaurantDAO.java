@@ -38,7 +38,7 @@ public class RestaurantDAO {
         }
     }
 
-    public Optional<Restaurant> findRestaurant(User owner) {
+    public Optional<Restaurant> findRestaurantByOwner(User owner) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Query<Restaurant> query = session.createQuery("FROM Restaurant WHERE owner = :owner", Restaurant.class);
             query.setParameter("owner", owner);

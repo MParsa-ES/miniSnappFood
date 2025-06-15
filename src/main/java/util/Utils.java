@@ -1,13 +1,18 @@
 package util;
+import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
+import dto.ErrorResponseDto;
 import entity.InvalidToken;
-import entity.Restaurant;
 import entity.User;
 import org.hibernate.Session;
+import org.hibernate.query.Query;
+
 import java.io.IOException;
 import java.io.OutputStream;
 
 public class Utils {
+
+    private final static Gson gson = new Gson();
 
     // Checking correct Header for content type
     public static boolean checkUnathorizedMediaType(HttpExchange exchange) throws IOException {
@@ -42,10 +47,16 @@ public class Utils {
                 .uniqueResult();
     }
 
-    public static boolean isTokenValid(HttpExchange exchange) throws IOException {
+
+    /**
+     * @param exchange the http exchange
+     * @return a boolean regarding the validity of the token in the exchnage
+     * @deprecated use the new getAuthenticatedUserPhone function in this same package instead
+     */
+    public static boolean isTokenValid(HttpExchange exchange) {
         String token = exchange.getRequestHeaders().getFirst("Authorization");
         String jti = JwtUtil.getJtiFromToken(token);
-        boolean tokenBlockListed = false;
+        boolean tokenBlockListed;
 
         // If token has no valid JTI it must be invalid
         if (jti == null) {
@@ -70,5 +81,51 @@ public class Utils {
             return false;
         }
         return true;
+    }
+
+    public static String getAuthenticatedUserPhone(HttpExchange exchange) throws IOException {
+
+        String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
+
+        if (authHeader == null) {
+            sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Missing Authorization header.")));
+            return null;
+        }
+
+        String token = authHeader.replace("Bearer ", "");
+
+        if (token.isEmpty()) {
+            sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Missing token.")));
+            return null;
+        }
+
+        String jti = JwtUtil.getJtiFromToken(token);
+        String phone = JwtUtil.validateToken(token);
+
+        if (jti == null || phone == null) {
+            sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Invalid token.")));
+            return null;
+        }
+
+        boolean isBlacklisted = false;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<InvalidToken> query = session.createQuery("from InvalidToken where jti = :jti_value", InvalidToken.class);
+            query.setParameter("jti_value", jti);
+            if (query.uniqueResultOptional().isPresent()) {
+                isBlacklisted = true;
+            }
+        } catch (Exception e) {
+            System.err.println("Error checking token blacklist: " + e.getMessage());
+            e.printStackTrace();
+            Utils.sendResponse(exchange, 500, gson.toJson(new ErrorResponseDto("Internal server error during authentication.")));
+            return null;
+        }
+
+        if (isBlacklisted){
+            sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Token is blacklisted.")));
+            return null;
+        }
+
+        return phone;
     }
 }

@@ -17,7 +17,6 @@ import service.exception.OrderServiceExceptions;
 import service.exception.UserNotFoundException;
 import service.exception.RestaurantServiceExceptions;
 
-import util.JwtUtil;
 import util.RateLimiter;
 import util.Utils;
 
@@ -148,8 +147,8 @@ public class RestaurantHttpHandler implements HttpHandler {
         }
 
         // check for user token
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        String ownerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (ownerUserPhone == null) {
             return;
         }
 
@@ -173,7 +172,6 @@ public class RestaurantHttpHandler implements HttpHandler {
         }
 
         // Exceptions from here will be caught by the main handle() method's try-catch blocks
-        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         RestaurantDto.Response responseDto = restaurantService.createRestaurant(requestDto, ownerUserPhone);
         Utils.sendResponse(exchange, 201, gson.toJson(responseDto));
     }
@@ -181,12 +179,11 @@ public class RestaurantHttpHandler implements HttpHandler {
     private void handleListRestaurants(HttpExchange exchange) throws IOException {
 
         // check for user token
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        String ownerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (ownerUserPhone == null) {
             return;
         }
 
-        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(restaurantService.listRestaurants(ownerUserPhone)));
     }
 
@@ -196,8 +193,8 @@ public class RestaurantHttpHandler implements HttpHandler {
             return;
         }
 
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        String ownerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (ownerUserPhone == null) {
             return;
         }
 
@@ -211,7 +208,6 @@ public class RestaurantHttpHandler implements HttpHandler {
             }
         }
 
-        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(restaurantService.updateRestaurant(requestDto, ownerUserPhone, id)));
 
     }
@@ -222,8 +218,9 @@ public class RestaurantHttpHandler implements HttpHandler {
             return;
         }
 
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        String ownerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (ownerUserPhone == null) {
+            return;
         }
 
         FoodItemDto.Request requestDto;
@@ -244,7 +241,6 @@ public class RestaurantHttpHandler implements HttpHandler {
             return;
         }
 
-        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         FoodItemDto.Response responseDto = foodItemService.createFoodItem(requestDto, ownerUserPhone);
         Utils.sendResponse(exchange, 201, gson.toJson(responseDto));
     }
@@ -255,8 +251,8 @@ public class RestaurantHttpHandler implements HttpHandler {
             return;
         }
 
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        String ownerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (ownerUserPhone == null) {
             return;
         }
 
@@ -270,18 +266,16 @@ public class RestaurantHttpHandler implements HttpHandler {
             }
         }
 
-        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(foodItemService.UpdateItem(requestDto, ownerUserPhone, restaurantId, itemId)));
 
     }
 
     private void handleDeleteItem(HttpExchange exchange, Long restaurantId, Long itemId) throws IOException {
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        String ownerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (ownerUserPhone == null) {
             return;
         }
 
-        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(foodItemService.DeleteItem(restaurantId, itemId)));
     }
 
@@ -291,8 +285,8 @@ public class RestaurantHttpHandler implements HttpHandler {
             return;
         }
 
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        String ownerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (ownerUserPhone == null) {
             return;
         }
 
@@ -305,17 +299,15 @@ public class RestaurantHttpHandler implements HttpHandler {
             }
         }
 
-        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(menuService.createMenu(requestDto, ownerUserPhone, id)));
     }
 
     private void handleDeleteMenu(HttpExchange exchange, Long id, String title) throws IOException {
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        String ownerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (ownerUserPhone == null) {
             return;
         }
 
-        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(menuService.deleteMenu(ownerUserPhone, id, title)));
 
     }
@@ -326,8 +318,8 @@ public class RestaurantHttpHandler implements HttpHandler {
             return;
         }
 
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        String ownerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (ownerUserPhone == null) {
             return;
         }
 
@@ -344,26 +336,24 @@ public class RestaurantHttpHandler implements HttpHandler {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
         }
 
-        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(
                 menuService.addFoodToMenu(requestDto, ownerUserPhone, restaurantId, menuTitle)));
 
     }
 
     private void handleDeleteFoodFromMenu(HttpExchange exchange, Long restaurantId, String menuTitle, Long foodId) throws IOException {
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        String ownerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (ownerUserPhone == null) {
             return;
         }
 
-        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(menuService.deleteFoodFromMenu(ownerUserPhone, restaurantId, menuTitle, foodId)));
     }
 
     private void handleGetRestaurantOrders(HttpExchange exchange, Long restaurantId) throws IOException {
 
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        String ownerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (ownerUserPhone == null) {
             return;
         }
         String query = exchange.getRequestURI().getQuery();
@@ -397,7 +387,6 @@ public class RestaurantHttpHandler implements HttpHandler {
         }
 
 
-        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200,
                 gson.toJson(orderService.getRestaurantOrders
                         (ownerUserPhone, restaurantId, status, search, user, courier)));
@@ -406,8 +395,13 @@ public class RestaurantHttpHandler implements HttpHandler {
 
     private void handleUpdateOrderStatus(HttpExchange exchange, Long orderId) throws IOException {
 
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
+            return;
+        }
+
+        String ownerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (ownerUserPhone == null) {
             return;
         }
 
@@ -421,7 +415,6 @@ public class RestaurantHttpHandler implements HttpHandler {
             }
         }
 
-        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(orderService.updateOrderStatus(requestDto, ownerUserPhone, orderId)));
     }
 

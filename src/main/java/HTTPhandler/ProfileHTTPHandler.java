@@ -9,7 +9,6 @@ import entity.Profile;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import util.HibernateUtil;
-import util.JwtUtil;
 import dto.ProfileDto;
 import util.RateLimiter;
 import util.Utils;
@@ -32,8 +31,10 @@ public class ProfileHTTPHandler implements HttpHandler {
 
         String token = exchange.getRequestHeaders().getFirst("Authorization");
 
-        if (!Utils.isTokenValid(exchange)) return;
-        String phone = JwtUtil.validateToken(token);
+        String phone = Utils.getAuthenticatedUserPhone(exchange);
+        if (phone == null){
+            return;
+        }
 
 
         if ("GET".equals(exchange.getRequestMethod())) {

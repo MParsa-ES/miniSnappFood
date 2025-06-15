@@ -71,7 +71,7 @@ public class OrderDAO {
     public Optional<Order> findOrderById(Long id) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Query<Order> query = session.createQuery(
-                    "SELECT o FROM Order o LEFT JOIN FETCH o.items LEFT JOIN FETCH o.customer WHERE o.id = :orderId", Order.class);
+                    "SELECT o FROM Order o LEFT JOIN FETCH o.restaurant LEFT JOIN FETCH o.items LEFT JOIN FETCH o.customer WHERE o.id = :orderId", Order.class);
             query.setParameter("orderId", id);
             return query.uniqueResultOptional();
         } catch (Exception e) {

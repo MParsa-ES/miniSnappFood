@@ -14,8 +14,6 @@ import dto.FoodItemDto;
 import dto.RestaurantDto;
 import io.jsonwebtoken.io.IOException;
 import service.BuyerService;
-import service.RestaurantService;
-import util.JwtUtil;
 import util.RateLimiter;
 import util.Utils;
 
@@ -74,8 +72,8 @@ public class BuyerHTTPHandler implements HttpHandler {
             return;
         }
 
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        if (Utils.getAuthenticatedUserPhone(exchange) == null) {
+            return;
         }
 
         BuyerDto.VendorSearch requestDto;
@@ -93,8 +91,8 @@ public class BuyerHTTPHandler implements HttpHandler {
     }
 
     private void handleItemList(HttpExchange exchange, Long restaurantId) throws java.io.IOException {
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        if (Utils.getAuthenticatedUserPhone(exchange) == null) {
+            return;
         }
 
         BuyerDto.ItemList itemListDto = buyerService.GetItemList(restaurantId);
@@ -107,8 +105,8 @@ public class BuyerHTTPHandler implements HttpHandler {
             return;
         }
 
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        if (Utils.getAuthenticatedUserPhone(exchange) == null) {
+            return;
         }
 
         BuyerDto.ItemSearch requestDto;
@@ -126,8 +124,8 @@ public class BuyerHTTPHandler implements HttpHandler {
     }
 
     private void handleGetItem(HttpExchange exchange, Long id) throws java.io.IOException {
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        if (Utils.getAuthenticatedUserPhone(exchange) == null) {
+            return;
         }
 
         FoodItemDto.Response itemDto = buyerService.GetItem(id);
@@ -136,11 +134,10 @@ public class BuyerHTTPHandler implements HttpHandler {
     }
 
     private void handleGetFavorites(HttpExchange exchange) throws java.io.IOException {
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        String phone = Utils.getAuthenticatedUserPhone(exchange);
+        if (phone == null) {
+            return;
         }
-        String token = exchange.getRequestHeaders().getFirst("Authorization");
-        String phone = JwtUtil.validateToken(token);
 
         List<RestaurantDto.Response> list = buyerService.getFavouriteRestaurants(phone);
         Utils.sendResponse(exchange, 200, gson.toJson(list));

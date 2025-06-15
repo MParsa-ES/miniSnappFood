@@ -15,7 +15,6 @@ import service.OrderService;
 import service.exception.OrderServiceExceptions;
 import service.exception.RestaurantServiceExceptions;
 import service.exception.UserNotFoundException;
-import util.JwtUtil;
 import util.RateLimiter;
 import util.Utils;
 
@@ -93,8 +92,8 @@ public class OrderHTTPHandler implements HttpHandler {
         }
 
         // check for user token
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        String customerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (customerUserPhone == null) {
             return;
         }
 
@@ -109,14 +108,13 @@ public class OrderHTTPHandler implements HttpHandler {
             }
         }
 
-        String customerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(orderService.createOrder(requestDto, customerUserPhone)));
 
     }
 
     private void handleGetHistory(HttpExchange exchange) throws IOException {
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        String customerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (customerUserPhone == null) {
             return;
         }
 
@@ -140,17 +138,15 @@ public class OrderHTTPHandler implements HttpHandler {
             }
         }
 
-        String customerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(orderService.getOrderHistory(customerUserPhone, vendor, search)));
     }
 
     private void handleGetOrderById(HttpExchange exchange, Long id) throws IOException {
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        String customerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (customerUserPhone == null) {
             return;
         }
 
-        String customerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
         Utils.sendResponse(exchange, 200, gson.toJson(orderService.getOrderById(customerUserPhone, id)));
 
     }

@@ -139,4 +139,23 @@ public class OrderDAO {
             throw new RuntimeException("Error in updating order:" + e.getMessage(), e);
         }
     }
+
+    public List<Order> findOrdersAwaitingDelivery() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+
+            Query<Order> query = session.createQuery(
+                    "SELECT DISTINCT o FROM Order o " +
+                            "LEFT JOIN FETCH o.items oi " +
+                            "LEFT JOIN FETCH o.customer c " +
+                            "LEFT JOIN FETCH o.restaurant r " +
+                            "WHERE o.status = :status " +
+                            "ORDER BY o.createdAt ASC", Order.class);
+
+            query.setParameter("status", OrderStatus.FINDING_COURIER);
+            return query.list();
+        } catch (Exception e) {
+            System.err.println("Error finding orders awaiting delivery: " + e.getMessage());
+            return List.of();
+        }
+    }
 }

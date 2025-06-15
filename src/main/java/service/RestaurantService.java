@@ -77,7 +77,7 @@ public class RestaurantService {
 
 
         try {
-            ownerRestaurant = restaurantDAO.findRestaurant(owner).get();
+            ownerRestaurant = restaurantDAO.findRestaurantByOwner(owner).get();
         } catch (NoSuchElementException e) {
             return restaurants;
         }

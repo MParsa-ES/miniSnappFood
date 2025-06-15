@@ -25,4 +25,10 @@ public class OrderServiceExceptions extends RuntimeException {
             super(message);
         }
     }
+
+    public static class RestaurantNotOwnerOfOrder extends RuntimeException {
+        public RestaurantNotOwnerOfOrder(String message) {
+            super(message);
+        }
+    }
 }

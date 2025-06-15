@@ -4,6 +4,7 @@ import dao.FoodItemDAO;
 import dao.OrderDAO;
 import dao.RestaurantDAO;
 import dao.UserDAO;
+import dto.MessageDto;
 import dto.OrderDto;
 import entity.*;
 import lombok.AllArgsConstructor;
@@ -174,6 +175,35 @@ public class OrderService {
         }
 
         return response;
+    }
+
+    public MessageDto updateOrderStatus(OrderDto.OrderStatusChangeRequest requestDto, String ownerUserPhone, Long orderId) throws
+            UserNotFoundException, RestaurantServiceExceptions.RestaurantNotFound,
+            OrderServiceExceptions.OrderNotFound,
+            OrderServiceExceptions.RestaurantNotOwnerOfOrder, IllegalArgumentException {
+
+        User owner = userDAO.findByPhone(ownerUserPhone).orElseThrow(
+                () -> new UserNotFoundException("User not found"));
+
+        Restaurant restaurant = restaurantDAO.findRestaurantByOwner(owner).orElseThrow(
+                () -> new RestaurantServiceExceptions.RestaurantNotFound("You have no restaurant"));
+
+        Order order = orderDAO.findOrderById(orderId).orElseThrow(
+                () -> new OrderServiceExceptions.OrderNotFound("Order with ID" + orderId + " not found"));
+
+        if (!order.getRestaurant().equals(restaurant)) {
+            throw new OrderServiceExceptions.RestaurantNotOwnerOfOrder(
+                    "This restaurant is not the owner of this order");
+        }
+
+        try {
+            order.setStatus(OrderStatus.valueOf(requestDto.getStatus().toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid order status");
+        }
+
+        orderDAO.updateOrder(order);
+        return new MessageDto("Order status changed successfully");
     }
 
     private OrderDto.OrderResponse mapOrderToResponseDto(Order order) {

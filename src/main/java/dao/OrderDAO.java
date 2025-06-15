@@ -125,4 +125,18 @@ public class OrderDAO {
             return List.of();
         }
     }
+
+    public void updateOrder(Order order) {
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+            session.merge(order);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            throw new RuntimeException("Error in updating order:" + e.getMessage(), e);
+        }
+    }
 }

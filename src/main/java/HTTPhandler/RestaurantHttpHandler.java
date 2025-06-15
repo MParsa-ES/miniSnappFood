@@ -6,16 +6,14 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import dao.*;
-import dto.ErrorResponseDto;
-import dto.FoodItemDto;
-import dto.MenuDto;
-import dto.RestaurantDto;
+import dto.*;
 import service.FoodItemService;
 import service.MenuService;
 import service.OrderService;
 import service.RestaurantService;
 
 import service.exception.MenuServiceExceptions;
+import service.exception.OrderServiceExceptions;
 import service.exception.UserNotFoundException;
 import service.exception.RestaurantServiceExceptions;
 
@@ -111,12 +109,17 @@ public class RestaurantHttpHandler implements HttpHandler {
                 handleGetRestaurantOrders(exchange , restaurantId);
 
 
+            } else if (path.matches("^/restaurants/orders/\\d+$") && "PATCH".equals(method)) {
+                Long orderId = Long.parseLong(path.split("/")[3]);
+                handleUpdateOrderStatus(exchange, orderId);
+
+
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Resource not found")));
             }
         } catch (UserNotFoundException | RestaurantServiceExceptions.RestaurantNotFound |
                  MenuServiceExceptions.MenuNotFoundException | RestaurantServiceExceptions.ItemNotFound |
-                 MenuServiceExceptions.FoodNotInMenu e) { // Catches the separate exception
+                 MenuServiceExceptions.FoodNotInMenu | OrderServiceExceptions.OrderNotFound e) { // Catches the separate exception
             Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
         }
         // Catch the specific exception for restaurant addition
@@ -125,7 +128,8 @@ public class RestaurantHttpHandler implements HttpHandler {
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (RestaurantServiceExceptions.RestaurantAlreadyExists |
                  RestaurantServiceExceptions.ItemAlreadyExists |
-                 MenuServiceExceptions.MenuIsDuplicateException e) {
+                 MenuServiceExceptions.MenuIsDuplicateException |
+                 OrderServiceExceptions.RestaurantNotOwnerOfOrder e) {
             Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid input: " + e.getMessage())));
@@ -398,6 +402,27 @@ public class RestaurantHttpHandler implements HttpHandler {
                 gson.toJson(orderService.getRestaurantOrders
                         (ownerUserPhone, restaurantId, status, search, user, courier)));
 
+    }
+
+    private void handleUpdateOrderStatus(HttpExchange exchange, Long orderId) throws IOException {
+
+        if (!Utils.isTokenValid(exchange)) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+            return;
+        }
+
+        OrderDto.OrderStatusChangeRequest requestDto = null;
+
+        try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+            requestDto = gson.fromJson(reader, OrderDto.OrderStatusChangeRequest.class);
+            if (requestDto == null || requestDto.getStatus() == null || requestDto.getStatus().isBlank()) {
+                Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Required field status is missing")));
+                return;
+            }
+        }
+
+        String ownerUserPhone = JwtUtil.validateToken(exchange.getRequestHeaders().getFirst("Authorization"));
+        Utils.sendResponse(exchange, 200, gson.toJson(orderService.updateOrderStatus(requestDto, ownerUserPhone, orderId)));
     }
 
 }

@@ -1,6 +1,5 @@
 package dto;
 
-import entity.OrderItem;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -8,7 +7,6 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.List;
 
 public class OrderDto {
 
@@ -52,5 +50,13 @@ public class OrderDto {
         private String status;
         private String created_at;
         private String updated_at;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OrderStatusChangeRequest {
+        private String status;
     }
 }

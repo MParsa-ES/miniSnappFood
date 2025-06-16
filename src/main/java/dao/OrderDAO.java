@@ -117,10 +117,10 @@ public class OrderDAO {
                 params.put("userName", "%" + user + "%");
             }
 
-            // TODO: add after finishing the courier part
-//            if (courier != null && !courier.isBlank()) {
-//                hqlBuilder.append(" AND (o.courier.name LIKE :courierName)");
-//            }
+            // TODO: add after finishing the courier part -> think its done
+            if (courier != null && !courier.isBlank()) {
+                hqlBuilder.append(" AND (o.courier.name LIKE :courierName)");
+            }
 
             hqlBuilder.append(" ORDER BY o.createdAt DESC");
 
@@ -189,5 +189,52 @@ public class OrderDAO {
             throw new RuntimeException("Error finding active order for courier: " + e.getMessage(), e);
         }
 
+    }
+
+    public List<Order> findOrdersHistoryByCourierId(Long courierId, String search, String vendor, String user){
+        try(Session session = HibernateUtil.getSessionFactory().openSession()) {
+
+            StringBuilder hql = new StringBuilder("SELECT DISTINCT o FROM Order o " +
+                    "LEFT JOIN FETCH o.items oi " +
+                    "LEFT JOIN oi.foodItem fi " +
+                    "LEFT JOIN FETCH o.restaurant r " +
+                    "LEFT JOIN FETCH o.customer cu " +
+                    "LEFT JOIN FETCH o.courier co ");
+
+            Map<String, Object> params = new HashMap<>();
+            params.put("courierId", courierId);
+            hql.append(" WHERE co.id = :courierId ");
+
+
+            if (search != null && !search.isBlank()) {
+                hql.append(" AND (fi.name LIKE :searchQuery OR r.name LIKE :searchQuery) ");
+                params.put("searchQuery","%" + search + "%");
+            }
+
+            if (user != null && !user.isBlank()) {
+                hql.append(" AND cu.fullName LIKE :userName ");
+                params.put("userName","%" + user + "%");
+            }
+
+            if (vendor != null && !vendor.isBlank()) {
+                hql.append(" AND r.name LIKE :vendor ");
+                params.put("vendor","%" + vendor + "%");
+            }
+
+            hql.append(" ORDER BY o.createdAt DESC");
+
+            Query<Order> query = session.createQuery(hql.toString(), Order.class);
+
+            for (Map.Entry<String, Object> entry : params.entrySet()) {
+                query.setParameter(entry.getKey(), entry.getValue());
+            }
+
+            return query.list();
+
+        } catch (Exception e) {
+            System.err.println("Error finding orders history by courierId " + courierId + ": " + e.getMessage());
+            e.printStackTrace();
+            return List.of();
+        }
     }
 }

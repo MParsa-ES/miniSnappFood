@@ -52,6 +52,10 @@ public class DeliveryHTTPHandler implements HttpHandler {
                 Long orderId = Long.parseLong(path.split("/")[2]);
                 handleChangeStatus(exchange, orderId);
 
+            } else if (path.equals("/deliveries/history") && method.equals("GET")) {
+                handleGetHistory(exchange);
+
+
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Endpoint Not found")));
             }
@@ -105,5 +109,38 @@ public class DeliveryHTTPHandler implements HttpHandler {
 
         Utils.sendResponse(exchange, 200, gson.toJson(deliveryService.updateOrderStatus(requestDto, courierPhoneNumber, orderId)));
 
+    }
+
+    private void handleGetHistory(HttpExchange exchange) throws IOException {
+
+        String courierPhoneNumber = Utils.getAuthenticatedUserPhone(exchange);
+        if (courierPhoneNumber == null) {
+            return;
+        }
+        String query = exchange.getRequestURI().getQuery();
+
+        String search = null;
+        String vendor = null;
+        String user = null;
+
+        if (query != null) {
+            for (String pair : query.split("&")) {
+                String[] keyValue = pair.split("=");
+
+                if (keyValue.length == 2) {
+                    if (keyValue[0].equals("search")) {
+                        search = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
+                    }
+                    if (keyValue[0].equals("vendor")) {
+                        vendor = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
+                    }
+                    if (keyValue[0].equals("user")) {
+                        user = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
+                    }
+                }
+            }
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(deliveryService.getDeliveryHistory(courierPhoneNumber, search, vendor, user)));
     }
 }

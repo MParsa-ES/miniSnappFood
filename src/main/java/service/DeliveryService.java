@@ -88,11 +88,29 @@ public class DeliveryService {
         orderDAO.updateOrder(order);
 
         OrderDto.OrderResponse orderResponse = mapOrderToResponseDto(order);
-        orderResponse.setCourier_id(courier.getId());
 
         return new DeliverDto.UpdateStatusResponse("Changed status successfully", orderResponse);
     }
 
+
+    public ArrayList<OrderDto.OrderResponse> getDeliveryHistory(String courierPhoneNumber, String search, String vendor, String user) throws
+            UserNotFoundException, DeliveryServiceExceptions.UserNotCourier {
+
+        User courier = userDAO.findByPhone(courierPhoneNumber).orElseThrow(
+                () -> new UserNotFoundException("User not found")
+        );
+
+        if (!courier.getRole().equals(Role.COURIER)){
+            throw new DeliveryServiceExceptions.UserNotCourier("This user is not a courier");
+        }
+
+        ArrayList<OrderDto.OrderResponse> orders = new ArrayList<>();
+        for (Order order : orderDAO.findOrdersHistoryByCourierId(courier.getId(), search, vendor, user)){
+            orders.add(mapOrderToResponseDto(order));
+        }
+
+        return orders;
+    }
 
     private OrderDto.OrderResponse mapOrderToResponseDto(Order order) {
         OrderDto.OrderResponse response = new OrderDto.OrderResponse();
@@ -111,6 +129,9 @@ public class DeliveryService {
         response.setCreated_at(order.getCreatedAt().toString());
         response.setUpdated_at(order.getUpdatedAt().toString());
 
+        if (order.getCourier() != null){
+            response.setCourier_id(order.getCourier().getId());
+        }
 
         ArrayList<Long> itemIds = new ArrayList<>();
         for (OrderItem item : order.getItems()) {

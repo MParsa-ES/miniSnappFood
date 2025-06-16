@@ -2,18 +2,19 @@ package service;
 
 import dao.OrderDAO;
 import dao.UserDAO;
+import dto.DeliverDto;
 import dto.OrderDto;
-import entity.Order;
-import entity.OrderItem;
-import entity.Role;
-import entity.User;
+import entity.*;
 import service.exception.DeliveryServiceExceptions;
+import service.exception.OrderServiceExceptions;
 import service.exception.UserNotFoundException;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 
 public class DeliveryService {
 
+    private final BigDecimal COURIER_FEE = new BigDecimal("1000");
     private final UserDAO userDAO;
     private final OrderDAO orderDAO;
 
@@ -42,6 +43,56 @@ public class DeliveryService {
         return orders;
     }
 
+    public DeliverDto.UpdateStatusResponse updateOrderStatus(OrderDto.OrderStatusChangeRequest requestDto, String courierPhoneNumber, Long orderId) throws
+            UserNotFoundException, DeliveryServiceExceptions.UserNotCourier,
+            OrderServiceExceptions.OrderNotFound, DeliveryServiceExceptions.OrderNotReadyForDelivery,
+            DeliveryServiceExceptions.OrderAlreadyAssignedToCourier, DeliveryServiceExceptions.CourierIsBusy,
+            IllegalArgumentException{
+
+        User courier = userDAO.findByPhone(courierPhoneNumber).orElseThrow(
+                () -> new UserNotFoundException("User not found")
+        );
+
+        if (!courier.getRole().equals(Role.COURIER)){
+            throw new DeliveryServiceExceptions.UserNotCourier("This user is not a courier");
+        }
+
+        Order order = orderDAO.findOrderById(orderId).orElseThrow(
+                () -> new OrderServiceExceptions.OrderNotFound("Order with ID" + orderId + " not found")
+        );
+
+        if (!order.getStatus().equals(OrderStatus.FINDING_COURIER)){
+            throw new DeliveryServiceExceptions.OrderNotReadyForDelivery("Order with ID" + orderId + " is not ready for delivery");
+        }
+
+        if (order.getCourier() != null && !order.getCourier().equals(courier)){
+            throw new DeliveryServiceExceptions.OrderAlreadyAssignedToCourier("This order is already assigned to another courier");
+        }
+
+        if (orderDAO.findActiveOrderByCourierId(courier.getId()).isPresent()){
+            throw new DeliveryServiceExceptions.CourierIsBusy("This courier is already busy delivering order with ID" + orderId);
+        }
+
+        try {
+            order.setStatus(OrderStatus.valueOf(requestDto.getStatus().toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid order status");
+        }
+
+        if (order.getCourier() == null){
+            order.setCourier(courier);
+            order.setCourierFee(COURIER_FEE);
+            order.setTotalPrice(order.getTotalPrice().add(COURIER_FEE));
+        }
+
+        orderDAO.updateOrder(order);
+
+        OrderDto.OrderResponse orderResponse = mapOrderToResponseDto(order);
+        orderResponse.setCourier_id(courier.getId());
+
+        return new DeliverDto.UpdateStatusResponse("Changed status successfully", orderResponse);
+    }
+
 
     private OrderDto.OrderResponse mapOrderToResponseDto(Order order) {
         OrderDto.OrderResponse response = new OrderDto.OrderResponse();
@@ -54,7 +105,7 @@ public class DeliveryService {
         response.setRaw_price(order.getRawPrice());
         response.setTax_fee(order.getTaxFee());
         response.setAdditional_fee(order.getAdditionalFee());
-        // TODO: set the courier fee
+        response.setCourier_fee(order.getCourierFee());
         response.setPay_price(order.getTotalPrice());
         response.setStatus(order.getStatus().name());
         response.setCreated_at(order.getCreatedAt().toString());

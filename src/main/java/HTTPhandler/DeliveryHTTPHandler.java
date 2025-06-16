@@ -7,13 +7,17 @@ import com.sun.net.httpserver.HttpHandler;
 import dao.OrderDAO;
 import dao.UserDAO;
 import dto.ErrorResponseDto;
+import dto.OrderDto;
 import service.DeliveryService;
 import service.exception.DeliveryServiceExceptions;
+import service.exception.OrderServiceExceptions;
 import service.exception.UserNotFoundException;
 import util.RateLimiter;
 import util.Utils;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 public class DeliveryHTTPHandler implements HttpHandler {
 
@@ -44,15 +48,22 @@ public class DeliveryHTTPHandler implements HttpHandler {
 
             if (path.equals("/deliveries/available") && method.equals("GET")) {
                 handleGetAvailableOrders(exchange);
+            } else if (path.matches("^/deliveries/\\d+$") && method.equals("PATCH")) {
+                Long orderId = Long.parseLong(path.split("/")[2]);
+                handleChangeStatus(exchange, orderId);
+
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Endpoint Not found")));
             }
 
-        } catch (UserNotFoundException e) {
+        } catch (UserNotFoundException | OrderServiceExceptions.OrderNotFound e) {
             Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
-        } catch (DeliveryServiceExceptions.UserNotCourier e){
+        } catch (DeliveryServiceExceptions.UserNotCourier e) {
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
-        } catch (RuntimeException e){
+        } catch (DeliveryServiceExceptions.OrderNotReadyForDelivery |
+                 DeliveryServiceExceptions.OrderAlreadyAssignedToCourier | DeliveryServiceExceptions.CourierIsBusy e) {
+            Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto(e.getMessage())));
+        } catch (RuntimeException e) {
             Utils.sendResponse(exchange, 500, gson.toJson(new ErrorResponseDto("Internal Server Error")));
             System.err.println("Error in Delivery HTTPHandler");
             e.printStackTrace();
@@ -68,5 +79,31 @@ public class DeliveryHTTPHandler implements HttpHandler {
         }
 
         Utils.sendResponse(exchange, 200, gson.toJson(deliveryService.getAvailableOrders(courierPhoneNumber)));
+    }
+
+    private void handleChangeStatus(HttpExchange exchange, Long orderId) throws IOException {
+
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported Media Type")));
+            return;
+        }
+
+        String courierPhoneNumber = Utils.getAuthenticatedUserPhone(exchange);
+        if (courierPhoneNumber == null) {
+            return;
+        }
+
+        OrderDto.OrderStatusChangeRequest requestDto;
+        try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+            requestDto = gson.fromJson(reader, OrderDto.OrderStatusChangeRequest.class);
+
+            if (requestDto == null || requestDto.getStatus() == null || requestDto.getStatus().isBlank()) {
+                Utils.sendResponse(exchange, 400, "Required filed 'status' is missing");
+                return;
+            }
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(deliveryService.updateOrderStatus(requestDto, courierPhoneNumber, orderId)));
+
     }
 }

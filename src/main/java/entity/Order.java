@@ -46,14 +46,18 @@
         @Column(precision = 10, scale = 2, nullable = false)
         private BigDecimal additionalFee;
 
-        // TODO: add courier fee later
+        @Column(precision = 10, scale = 2)
+        private BigDecimal courierFee;
 
         @Column(precision = 10, scale = 2, nullable = false)
         private BigDecimal totalPrice;
 
 
 
-        // TODO: add courier id
+
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "courier_id")
+        private User courier;
 
         @Enumerated(EnumType.STRING)
         @Column(nullable = false)

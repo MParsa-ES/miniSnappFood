@@ -17,7 +17,9 @@ public class OrderDAO {
 
     public void save(Order order) {
         Transaction transaction = null;
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+        Session session = null;
+        try{
+            session = HibernateUtil.getSessionFactory().openSession();
             transaction = session.beginTransaction();
             session.save(order);
             transaction.commit();
@@ -26,6 +28,10 @@ public class OrderDAO {
                 transaction.rollback();
             }
             throw new RuntimeException("Error in saving order:" + e.getMessage(), e);
+        } finally {
+            if (session != null && session.isOpen()) {
+                session.close();
+            }
         }
     }
 
@@ -71,7 +77,12 @@ public class OrderDAO {
     public Optional<Order> findOrderById(Long id) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Query<Order> query = session.createQuery(
-                    "SELECT o FROM Order o LEFT JOIN FETCH o.restaurant LEFT JOIN FETCH o.items LEFT JOIN FETCH o.customer WHERE o.id = :orderId", Order.class);
+                    "SELECT o FROM Order o " +
+                            "LEFT JOIN FETCH o.restaurant " +
+                            "LEFT JOIN FETCH o.items " +
+                            "LEFT JOIN FETCH o.customer " +
+                            "LEFT JOIN FETCH o.courier " +
+                            "WHERE o.id = :orderId", Order.class);
             query.setParameter("orderId", id);
             return query.uniqueResultOptional();
         } catch (Exception e) {
@@ -157,5 +168,26 @@ public class OrderDAO {
             System.err.println("Error finding orders awaiting delivery: " + e.getMessage());
             return List.of();
         }
+    }
+
+    public Optional<Order> findActiveOrderByCourierId(Long courierId){
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<Order> query = session.createQuery("SELECT o FROM Order o WHERE o.courier.id = :courierId AND " +
+                    "o.status IN (:statuses)", Order.class);
+            query.setParameter("courierId", courierId);
+
+            List<OrderStatus> statuses = List.of(
+                    OrderStatus.ACCEPTED,
+                    OrderStatus.ON_THE_WAY,
+                    OrderStatus.RECEIVED);
+
+            query.setParameterList("statuses", statuses);
+            return query.uniqueResultOptional();
+        } catch (Exception e){
+            System.err.println("Error finding active order for courier with ID" + courierId + ": " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error finding active order for courier: " + e.getMessage(), e);
+        }
+
     }
 }

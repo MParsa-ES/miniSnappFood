@@ -59,6 +59,9 @@
         @Column(nullable = false)
         private OrderStatus status;
 
+        @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+        private Rating rating;
+
         @CreationTimestamp
         @Column(nullable = false, updatable = false)
         private LocalDateTime createdAt;

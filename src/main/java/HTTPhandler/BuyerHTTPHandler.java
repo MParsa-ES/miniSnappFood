@@ -153,7 +153,7 @@ public class BuyerHTTPHandler implements HttpHandler {
         }
 
         String token = exchange.getRequestHeaders().getFirst("Authorization");
-        String phone = JwtUtil.validateToken(token);
+        String phone = Utils.getAuthenticatedUserPhone(exchange);
 
         MessageDto messageDto = buyerService.addFavoriteRestaurant(restaurantId, phone);
         Utils.sendResponse(exchange, 200, gson.toJson(messageDto));
@@ -166,7 +166,7 @@ public class BuyerHTTPHandler implements HttpHandler {
         }
 
         String token = exchange.getRequestHeaders().getFirst("Authorization");
-        String phone = JwtUtil.validateToken(token);
+        String phone = Utils.getAuthenticatedUserPhone(exchange);
 
         MessageDto messageDto = buyerService.removeFavoriteRestaurant(restaurantId, phone);
         Utils.sendResponse(exchange, 200, gson.toJson(messageDto));

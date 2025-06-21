@@ -161,7 +161,7 @@ public class BuyerService {
                 .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found"));
 
         if(user.getFavoriteRestaurants().contains(restaurant)){
-            return new MessageDto("Restaurant is already favourite");
+            throw new RestaurantServiceExceptions.RestaurantAlreadyFavorite("Restaurant already favorite");
         }
 
         user.addFavoriteRestaurant(restaurant);

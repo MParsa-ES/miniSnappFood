@@ -5,6 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -49,5 +50,11 @@ public class FoodItem {
 
     @ManyToMany(mappedBy = "foodItems")
     private Set<Menu> menus = new HashSet<>();
+
+    @Column(name = "average_rating", precision = 3, scale = 2)
+    private BigDecimal averageRating = BigDecimal.ZERO;
+
+    int numberOfRatings;
+    
 
 }

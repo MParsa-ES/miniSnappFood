@@ -31,4 +31,16 @@ public class OrderServiceExceptions extends RuntimeException {
             super(message);
         }
     }
+
+    public static class UserIsNotOwnerOfOrder extends RuntimeException {
+        public UserIsNotOwnerOfOrder(String message) {}
+    }
+
+    public static class OrderNotCompleted extends RuntimeException {
+        public OrderNotCompleted(String message) {}
+    }
+
+    public static class RatingAlreadyExists extends RuntimeException {
+        public RatingAlreadyExists(String message) {}
+    }
 }

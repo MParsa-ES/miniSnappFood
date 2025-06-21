@@ -13,6 +13,8 @@ import service.exception.MenuServiceExceptions;
 import service.exception.RestaurantServiceExceptions;
 import service.exception.UserNotFoundException;
 
+import java.math.BigDecimal;
+
 public class FoodItemService {
     private final UserDAO userDAO;
     private final RestaurantDAO restaurantDAO;
@@ -52,6 +54,8 @@ public class FoodItemService {
         foodItem.setDescription(requestDto.getDescription());
         foodItem.setRestaurant(restaurant);
         foodItem.setKeywords(requestDto.getKeywords());
+        foodItem.setAverageRating(BigDecimal.valueOf(0));
+        foodItem.setNumberOfRatings(0);
 
         FoodItem savedFood = foodItemDAO.save(foodItem);
 

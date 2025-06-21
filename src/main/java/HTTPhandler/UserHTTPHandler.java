@@ -107,7 +107,8 @@ public class UserHTTPHandler implements HttpHandler {
             String jsonResponse = gson.toJson(responseDto);
             Utils.sendResponse(exchange, 200, jsonResponse);
 
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            System.err.println("Something went wrong");
             e.printStackTrace();
             Utils.sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}");
         }

@@ -20,6 +20,7 @@ public class Main {
         server.createContext("/favorites", new BuyerHTTPHandler());
         server.createContext("/orders", new OrderHTTPHandler());
         server.createContext("/deliveries", new DeliveryHTTPHandler());
+        server.createContext("/admin", new AdminHTTPHandler());
         server.start();
         System.out.println("Server started on http://localhost:8080");
     }

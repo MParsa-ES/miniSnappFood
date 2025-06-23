@@ -6,6 +6,8 @@ import org.hibernate.Transaction;
 import util.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
+
+import java.util.List;
 import java.util.Optional;
 
 public class UserDAO {
@@ -45,6 +47,18 @@ public class UserDAO {
         } catch (Exception e) {
             e.printStackTrace();
             return Optional.empty();
+        }
+    }
+
+    public List<User> getAllUsers(){
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<User> query = session.createQuery("FROM User user LEFT JOIN FETCH user.profile p LEFT JOIN FETCH p.bank_info b", User.class);
+            return query.list();
+        } catch (Exception e) {
+            System.err.println("Error getting all users: " + e.getMessage());
+            e.printStackTrace();
+            return List.of();
         }
     }
 }

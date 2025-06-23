@@ -6,11 +6,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import at.favre.lib.crypto.bcrypt.BCrypt;
 import dto.*;
-import entity.BankInfo;
-import entity.Profile;
-import entity.User;
-import entity.Role;
-import entity.InvalidToken;
+import entity.*;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import util.HibernateUtil;
@@ -70,10 +66,16 @@ public class UserHTTPHandler implements HttpHandler {
         Role role;
         try {
             role = Role.valueOf(requestDto.getRole().toUpperCase());
+            if (role.equals(Role.ADMIN)) {
+                Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto("Admin role is not registrable")));
+                return;
+            }
+
         } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, "{\n\"error\":\"Invalid field name\"\n}");
             return;
         }
+
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             if (isPhoneTaken(session, requestDto.getPhone())) {
@@ -224,6 +226,12 @@ public class UserHTTPHandler implements HttpHandler {
         String originalPassword = requestDto.getPassword();
         String hashedPassword = BCrypt.withDefaults().hashToString(12, originalPassword.toCharArray());
         user.setPassword(hashedPassword);
+
+        if (role.equals(Role.ADMIN) || role.equals(Role.BUYER)) {
+            user.setApprovalStatus(ApprovalStatus.APPROVED);
+        } else if (role.equals(Role.SELLER) || role.equals(Role.COURIER)) {
+            user.setApprovalStatus(ApprovalStatus.PENDING);
+        }
 
         BankInfo bankInfo = null;
         if (requestDto.getBank_info() != null) {

@@ -34,6 +34,10 @@ public class DeliveryService {
             throw new DeliveryServiceExceptions.UserNotCourier("This user is not a courier");
         }
 
+        if (!courier.getApprovalStatus().equals(ApprovalStatus.APPROVED)){
+            throw new DeliveryServiceExceptions.CourierNotApproved("This courier is not approved");
+        }
+
         ArrayList<OrderDto.OrderResponse> orders = new ArrayList<>();
 
         for (Order order : orderDAO.findOrdersAwaitingDelivery()){
@@ -55,6 +59,10 @@ public class DeliveryService {
 
         if (!courier.getRole().equals(Role.COURIER)){
             throw new DeliveryServiceExceptions.UserNotCourier("This user is not a courier");
+        }
+
+        if (!courier.getApprovalStatus().equals(ApprovalStatus.APPROVED)){
+            throw new DeliveryServiceExceptions.CourierNotApproved("This courier is not approved");
         }
 
         Order order = orderDAO.findOrderById(orderId).orElseThrow(
@@ -102,6 +110,10 @@ public class DeliveryService {
 
         if (!courier.getRole().equals(Role.COURIER)){
             throw new DeliveryServiceExceptions.UserNotCourier("This user is not a courier");
+        }
+
+        if (!courier.getApprovalStatus().equals(ApprovalStatus.APPROVED)){
+            throw new DeliveryServiceExceptions.CourierNotApproved("This courier is not approved");
         }
 
         ArrayList<OrderDto.OrderResponse> orders = new ArrayList<>();

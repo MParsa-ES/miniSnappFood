@@ -30,11 +30,15 @@ public class MenuService {
         User owner = userDAO.findByPhone(ownerUserPhone).orElseThrow(() -> new UserNotFoundException("User not found"));
 
         if (owner.getRole() != Role.SELLER) {
-            throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
+            throw new RestaurantServiceExceptions.UserNotSeller("User is not seller");
         }
 
         if (!restaurant.getOwner().equals(owner)) {
             throw new RestaurantServiceExceptions.UserNotOwner("This user is not owner of this restaurant");
+        }
+
+        if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
+            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
         }
 
         if (menuDAO.findMenuInRestaurant(request.getTitle(), restaurantId).isPresent()) {
@@ -64,11 +68,15 @@ public class MenuService {
                 () -> new UserNotFoundException("User not found"));
 
         if (owner.getRole() != Role.SELLER) {
-            throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
+            throw new RestaurantServiceExceptions.UserNotSeller("User is not seller");
         }
 
         if (!restaurant.getOwner().equals(owner)) {
             throw new RestaurantServiceExceptions.UserNotOwner("This user is not owner of this restaurant");
+        }
+
+        if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
+            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
         }
 
 
@@ -93,18 +101,22 @@ public class MenuService {
                 () -> new UserNotFoundException("User not found"));
 
         if (owner.getRole() != Role.SELLER) {
-            throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
+            throw new RestaurantServiceExceptions.UserNotSeller("User is not seller");
         }
 
         if (!restaurant.getOwner().equals(owner)) {
             throw new RestaurantServiceExceptions.UserNotOwner("This user is not owner of this restaurant");
         }
 
+        if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
+            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
+        }
+
         Menu menu = menuDAO.findMenuInRestaurant(menuTitle, restaurantId).orElseThrow(
                 () -> new MenuServiceExceptions.MenuNotFoundException("Menu with title " + menuTitle + " not found"));
 
         FoodItem foodItem = foodItemDAO.findFoodItemById(restaurantId, requestDto.getItem_id()).orElseThrow(
-                () -> new RestaurantServiceExceptions.ItemNotFound("Item not Found"));
+                () -> new RestaurantServiceExceptions.ItemNotFound("Food item not Found"));
 
         if (menu.getFoodItems().add(foodItem)) {
             menuDAO.update(menu);
@@ -129,18 +141,22 @@ public class MenuService {
                 () -> new UserNotFoundException("User not found"));
 
         if (owner.getRole() != Role.SELLER) {
-            throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
+            throw new RestaurantServiceExceptions.UserNotSeller("User is not seller");
         }
 
         if (!restaurant.getOwner().equals(owner)) {
             throw new RestaurantServiceExceptions.UserNotOwner("This user is not owner of this restaurant");
         }
 
+        if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
+            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
+        }
+
         Menu menu = menuDAO.findMenuInRestaurant(menuTitle, restaurantId).orElseThrow(
                 () -> new MenuServiceExceptions.MenuNotFoundException("Menu with title " + menuTitle + " not found"));
 
         FoodItem foodItem = foodItemDAO.findFoodItemById(restaurantId, foodId).orElseThrow(
-                () -> new RestaurantServiceExceptions.ItemNotFound("Item not Found"));
+                () -> new RestaurantServiceExceptions.ItemNotFound("Food item not Found"));
 
         if (menu.getFoodItems().remove(foodItem)) {
             menuDAO.update(menu);

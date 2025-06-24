@@ -61,4 +61,38 @@ public class UserDAO {
             return List.of();
         }
     }
+
+    public Optional<User> findById(Long id) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<User> query = session.createQuery("FROM User u LEFT JOIN FETCH u.profile p LEFT JOIN FETCH p.bank_info WHERE u.id = :id", User.class);
+            query.setParameter("id", id);
+            return query.uniqueResultOptional();
+        } catch (Exception e) {
+            System.err.println("Error getting user with ID" + id + ": " + e.getMessage());
+            e.printStackTrace();
+            return Optional.empty();
+        }
+    }
+
+    public void update(User user) {
+        Transaction transaction = null;
+        Session session = null;
+        try {
+            session = HibernateUtil.getSessionFactory().openSession();
+            transaction = session.beginTransaction();
+            session.merge(user);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            System.err.println("Error updating user with ID" + user.getId() + ": " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Could not update user with ID" + user.getId() + ": " + e.getMessage());
+        } finally {
+            if (session != null && session.isOpen()) {
+                session.close();
+            }
+        }
+    }
 }

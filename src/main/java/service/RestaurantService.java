@@ -3,6 +3,7 @@ package service;
 import dao.RestaurantDAO;
 import dao.UserDAO;
 import dto.RestaurantDto;
+import entity.ApprovalStatus;
 import entity.Restaurant;
 import entity.User;
 import entity.Role;
@@ -32,6 +33,10 @@ public class RestaurantService {
         // if the user is not a seller
         if (owner.getRole() != Role.SELLER) {
             throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
+        }
+
+        if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
+            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
         }
 
         // a restaurant with this number already exists
@@ -70,6 +75,10 @@ public class RestaurantService {
 
         if (owner.getRole() != Role.SELLER) {
             throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
+        }
+
+        if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
+            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
         }
 
         Restaurant ownerRestaurant = null;
@@ -113,11 +122,15 @@ public class RestaurantService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         if (owner.getRole() != Role.SELLER) {
-            throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
+            throw new RestaurantServiceExceptions.UserNotSeller("User is not seller");
         }
 
         if (!currentRestaurant.getOwner().equals(owner)) {
-            throw new RestaurantServiceExceptions.UserNotOwner("Forbidden request");
+            throw new RestaurantServiceExceptions.UserNotOwner("Seller is not the owner of this restaurant");
+        }
+
+        if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
+            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
         }
 
         if (requestDto.getPhone() != null && !requestDto.getPhone().equals(currentRestaurant.getPhone()) && restaurantDAO.findByPhone(requestDto.getPhone()).isPresent()) {

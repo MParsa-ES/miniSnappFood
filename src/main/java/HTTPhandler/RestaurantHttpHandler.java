@@ -128,7 +128,8 @@ public class RestaurantHttpHandler implements HttpHandler {
         } catch (RestaurantServiceExceptions.RestaurantAlreadyExists |
                  RestaurantServiceExceptions.ItemAlreadyExists |
                  MenuServiceExceptions.MenuIsDuplicateException |
-                 OrderServiceExceptions.RestaurantNotOwnerOfOrder e) {
+                 OrderServiceExceptions.RestaurantNotOwnerOfOrder |
+                 RestaurantServiceExceptions.SellerNotApproved e) {
             Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid input: " + e.getMessage())));

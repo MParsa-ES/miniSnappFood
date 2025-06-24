@@ -5,10 +5,7 @@ import dao.RestaurantDAO;
 import dao.UserDAO;
 import dto.FoodItemDto;
 import dto.MessageDto;
-import entity.FoodItem;
-import entity.Restaurant;
-import entity.Role;
-import entity.User;
+import entity.*;
 import service.exception.MenuServiceExceptions;
 import service.exception.RestaurantServiceExceptions;
 import service.exception.UserNotFoundException;
@@ -34,11 +31,15 @@ public class FoodItemService {
 
         // if the user is not a seller
         if (owner.getRole() != Role.SELLER) {
-            throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
+            throw new RestaurantServiceExceptions.UserNotSeller("User is not seller");
+        }
+
+        if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
+            throw new RestaurantServiceExceptions.SellerNotApproved("This is seller is not approved");
         }
 
         Restaurant restaurant = restaurantDAO.findRestaurantByOwner(owner)
-                .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Forbidden request"));
+                .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found"));
 
         if (foodItemDAO.checkFoodItem(requestDto, restaurant)) {
             throw new RestaurantServiceExceptions.ItemAlreadyExists("Conflict occurred");
@@ -79,7 +80,11 @@ public class FoodItemService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         if (owner.getRole() != Role.SELLER) {
-            throw new RestaurantServiceExceptions.UserNotSeller("Forbidden request");
+            throw new RestaurantServiceExceptions.UserNotSeller("User is not seller");
+        }
+
+        if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
+            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
         }
 
         Restaurant currentRestaurant = restaurantDAO.findRestaurantById(restaurantId)
@@ -89,7 +94,7 @@ public class FoodItemService {
                 .orElseThrow(() -> new RestaurantServiceExceptions.ItemNotFound("Item not Found"));
 
         if (!currentRestaurant.getOwner().equals(owner)) {
-            throw new RestaurantServiceExceptions.UserNotOwner("Forbidden request");
+            throw new RestaurantServiceExceptions.UserNotOwner("Seller is not owner of this restaurant");
         }
 
 

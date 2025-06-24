@@ -4,7 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import dao.OrderDAO;
 import dao.UserDAO;
+import dto.AdminDto;
 import dto.ErrorResponseDto;
 import service.AdminService;
 import service.exception.AdminServiceExceptions;
@@ -13,6 +15,8 @@ import util.RateLimiter;
 import util.Utils;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 public class AdminHTTPHandler implements HttpHandler {
 
@@ -21,7 +25,7 @@ public class AdminHTTPHandler implements HttpHandler {
 
 
     public AdminHTTPHandler() {
-        this.adminService = new AdminService(new UserDAO());
+        this.adminService = new AdminService(new UserDAO(), new OrderDAO());
 
     }
 
@@ -43,6 +47,11 @@ public class AdminHTTPHandler implements HttpHandler {
                 handleGetAllUsers(exchange);
 
 
+            } else if (path.matches("^/admin/users/\\d+/status$") && method.equals("PATCH")) {
+                Long userId = Long.parseLong(path.split("/")[3]);
+                handleUpdateApprovalStatus(exchange, userId);
+
+
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Admin endpoint not found.")));
 
@@ -52,6 +61,8 @@ public class AdminHTTPHandler implements HttpHandler {
             Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (AdminServiceExceptions.UserNotAdminException e){
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
+        } catch (IllegalArgumentException e) {
+            Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Error in Admin HTTP Handler :" + e.getMessage());
@@ -69,6 +80,32 @@ public class AdminHTTPHandler implements HttpHandler {
         }
 
         Utils.sendResponse(exchange, 200, gson.toJson(adminService.getUsersList(AdminPhoneNumebr)));
+    }
+
+    private void handleUpdateApprovalStatus(HttpExchange exchange, Long userId) throws IOException {
+
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unauthorized Media Type")));
+            return;
+        }
+
+        String adminUserName = Utils.getAuthenticatedUserPhone(exchange);
+
+        if (adminUserName == null) {
+            return;
+        }
+
+        AdminDto.UpdateUserApprovalDto requestDto;
+        try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+            requestDto = gson.fromJson(reader, AdminDto.UpdateUserApprovalDto.class);
+
+            if (requestDto == null || requestDto.getStatus() == null || requestDto.getStatus().isBlank()) {
+                Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Status field is missing")));
+                return;
+            }
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(adminService.updateUserApprovalStatus(adminUserName,requestDto,userId)));
     }
 
 

@@ -62,7 +62,8 @@ public class DeliveryHTTPHandler implements HttpHandler {
 
         } catch (UserNotFoundException | OrderServiceExceptions.OrderNotFound e) {
             Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
-        } catch (DeliveryServiceExceptions.UserNotCourier e) {
+        } catch (DeliveryServiceExceptions.UserNotCourier |
+                 DeliveryServiceExceptions.CourierNotApproved e) {
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (DeliveryServiceExceptions.OrderNotReadyForDelivery |
                  DeliveryServiceExceptions.OrderAlreadyAssignedToCourier | DeliveryServiceExceptions.CourierIsBusy e) {

@@ -52,6 +52,10 @@ public class AdminHTTPHandler implements HttpHandler {
                 handleUpdateApprovalStatus(exchange, userId);
 
 
+            } else if (path.equals("/admin/orders") && method.equals("GET")) {
+                handleGetAllOrdersWithFilters(exchange);
+
+
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Admin endpoint not found.")));
 
@@ -59,7 +63,7 @@ public class AdminHTTPHandler implements HttpHandler {
             }
         } catch (UserNotFoundException e) {
             Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
-        } catch (AdminServiceExceptions.UserNotAdminException e){
+        } catch (AdminServiceExceptions.UserNotAdminException e) {
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto(e.getMessage())));
@@ -105,7 +109,52 @@ public class AdminHTTPHandler implements HttpHandler {
             }
         }
 
-        Utils.sendResponse(exchange, 200, gson.toJson(adminService.updateUserApprovalStatus(adminUserName,requestDto,userId)));
+        Utils.sendResponse(exchange, 200, gson.toJson(adminService.updateUserApprovalStatus(adminUserName, requestDto, userId)));
+    }
+
+    private void handleGetAllOrdersWithFilters(HttpExchange exchange) throws IOException {
+
+        String adminUserName = Utils.getAuthenticatedUserPhone(exchange);
+        if (adminUserName == null) {
+            return;
+        }
+
+        String query = exchange.getRequestURI().getQuery();
+
+        String search = null;
+        String vendor = null;
+        String courier = null;
+        String customer = null;
+        String status = null;
+
+
+        if (query != null && !query.isEmpty()) {
+
+            for (String filter : query.split("&")) {
+                String[] keyValue = filter.split("=");
+                if (keyValue.length == 2) {
+                    switch (keyValue[0]) {
+                        case "search":
+                            search = keyValue[1];
+                            break;
+                        case "vendor":
+                            vendor = keyValue[1];
+                            break;
+                        case "courier":
+                            courier = keyValue[1];
+                            break;
+                        case "customer":
+                            customer = keyValue[1];
+                            break;
+                        case "status":
+                            status = keyValue[1];
+                            break;
+                    }
+                }
+            }
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(adminService.getOrdersList(adminUserName, search, vendor, courier, customer, status)));
     }
 
 

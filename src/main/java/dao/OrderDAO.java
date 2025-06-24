@@ -237,4 +237,65 @@ public class OrderDAO {
             return List.of();
         }
     }
+
+    public List<Order> getAllOrdersWithFilters(String search, String vendor, String courier, String customer, String status) {
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+
+            HashMap<String, Object> params = new HashMap<>();
+
+
+            StringBuilder hql = new StringBuilder("SELECT DISTINCT o FROM Order o " +
+                    "LEFT JOIN FETCH o.restaurant r " +
+                    "LEFT JOIN FETCH o.items oi " +
+                    "LEFT JOIN oi.foodItem fi " +
+                    "LEFT JOIN FETCH o.customer cu " +
+                    "LEFT JOIN FETCH o.courier co " +
+                    "WHERE 1=1");
+
+            if (vendor != null && !vendor.isBlank()) {
+                hql.append(" AND r.name LIKE :vendorName");
+                params.put("vendorName","%" + vendor + "%");
+            }
+
+            if (courier != null && !courier.isBlank()) {
+                hql.append(" AND co.fullName LIKE :courierName");
+                params.put("courierName","%" + courier + "%");
+            }
+
+            if (customer != null && !customer.isBlank()) {
+                hql.append(" AND cu.fullName LIKE :customerName");
+                params.put("customerName","%" + customer + "%");
+            }
+
+            if (status != null && !status.isBlank()) {
+                hql.append(" AND o.status = :status ");
+                try {
+                    params.put("status", OrderStatus.valueOf(status.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    System.err.println("Invalid status filter value: " + status);
+                    return List.of();
+                }
+            }
+
+            if (search != null && !search.isBlank()) {
+                hql.append(" AND fi.name LIKE :searchQuery");
+                params.put("searchQuery","%" + search + "%");
+            }
+
+            hql.append(" ORDER BY o.createdAt DESC");
+
+            Query<Order> query = session.createQuery(hql.toString(), Order.class);
+
+            for (Map.Entry<String, Object> entry : params.entrySet()) {
+                query.setParameter(entry.getKey(), entry.getValue());
+            }
+
+            return query.list();
+        } catch (Exception e) {
+            System.err.println("Error finding all orders with filter: " + e.getMessage());
+            e.printStackTrace();
+            return List.of();
+        }
+    }
 }

@@ -6,10 +6,7 @@ import dto.AdminDto;
 import dto.MessageDto;
 import dto.OrderDto;
 import dto.UserLoginDto;
-import entity.ApprovalStatus;
-import entity.Role;
-import entity.User;
-import entity.Profile;
+import entity.*;
 import service.exception.AdminServiceExceptions;
 import service.exception.UserNotFoundException;
 
@@ -76,14 +73,23 @@ public class AdminService {
 
     }
 
-    public ArrayList<OrderDto.OrderResponse> getOrdersList(String adminUserName){
+    public ArrayList<OrderDto.OrderResponse> getOrdersList(String adminUserName, String search, String vendor, String courier, String customer, String status){
 
         User admin = userDAO.findByPhone(adminUserName).orElseThrow(
                 () -> new UserNotFoundException("User not found")
         );
 
-        ArrayList<OrderDto.OrderResponse> orders = new ArrayList<>();
+        if (!admin.getRole().equals(Role.ADMIN)) {
+            throw new AdminServiceExceptions.UserNotAdminException("You are not admin");
+        }
 
+        ArrayList<OrderDto.OrderResponse> orderResponses = new ArrayList<>();
+
+        for (Order order : orderDAO.getAllOrdersWithFilters(search, vendor, courier, customer, status)) {
+            orderResponses.add(mapOrderToResponseDto(order));
+        }
+
+        return orderResponses;
 
     }
 
@@ -112,5 +118,35 @@ public class AdminService {
         }
 
         return userData;
+    }
+
+    private OrderDto.OrderResponse mapOrderToResponseDto(Order order) {
+        OrderDto.OrderResponse response = new OrderDto.OrderResponse();
+
+        response.setId(order.getId());
+        response.setDelivery_address(order.getDeliveryAddress());
+        response.setCustomer_id(order.getCustomer().getId());
+        response.setVendor_id(order.getRestaurant().getId());
+        // TODO: set the coupon id
+        response.setRaw_price(order.getRawPrice());
+        response.setTax_fee(order.getTaxFee());
+        response.setAdditional_fee(order.getAdditionalFee());
+        response.setCourier_fee(order.getCourierFee());
+        response.setPay_price(order.getTotalPrice());
+        response.setStatus(order.getStatus().name());
+        response.setCreated_at(order.getCreatedAt().toString());
+        response.setUpdated_at(order.getUpdatedAt().toString());
+
+        if (order.getCourier() != null){
+            response.setCourier_id(order.getCourier().getId());
+        }
+
+        ArrayList<Long> itemIds = new ArrayList<>();
+        for (OrderItem item : order.getItems()) {
+            itemIds.add(item.getFoodItem().getId());
+        }
+        response.setItem_ids(itemIds);
+
+        return response;
     }
 }

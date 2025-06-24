@@ -135,19 +135,19 @@ public class AdminHTTPHandler implements HttpHandler {
                 if (keyValue.length == 2) {
                     switch (keyValue[0]) {
                         case "search":
-                            search = keyValue[1];
+                            search = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
                             break;
                         case "vendor":
-                            vendor = keyValue[1];
+                            vendor = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
                             break;
                         case "courier":
-                            courier = keyValue[1];
+                            courier = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
                             break;
                         case "customer":
-                            customer = keyValue[1];
+                            customer = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
                             break;
                         case "status":
-                            status = keyValue[1];
+                            status = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
                             break;
                     }
                 }

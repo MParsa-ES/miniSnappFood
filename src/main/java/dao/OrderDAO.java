@@ -248,7 +248,7 @@ public class OrderDAO {
             StringBuilder hql = new StringBuilder("SELECT DISTINCT o FROM Order o " +
                     "LEFT JOIN FETCH o.restaurant r " +
                     "LEFT JOIN FETCH o.items oi " +
-                    "LEFT JOIN oi.foodItem fi " +
+                    "LEFT JOIN FETCH oi.foodItem fi " +
                     "LEFT JOIN FETCH o.customer cu " +
                     "LEFT JOIN FETCH o.courier co " +
                     "WHERE 1=1");

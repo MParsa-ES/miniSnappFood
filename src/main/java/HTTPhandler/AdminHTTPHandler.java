@@ -73,6 +73,15 @@ public class AdminHTTPHandler implements HttpHandler {
                 handleDeleteCoupon(exchange, couponId);
 
 
+            } else if (path.matches("^/admin/coupons/\\d+$") && method.equals("GET")) {
+                Long couponId = Long.parseLong(path.split("/")[3]);
+                handleGetCoupon(exchange, couponId);
+
+
+            } else if (path.equals("/admin/coupons") && method.equals("GET")) {
+                handleGetAllCoupons(exchange);
+
+
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Admin endpoint not found.")));
 
@@ -233,6 +242,25 @@ public class AdminHTTPHandler implements HttpHandler {
         }
 
         Utils.sendResponse(exchange, 200, gson.toJson(adminService.deleteCoupon(adminUserName, couponId)));
+    }
+
+    private void handleGetCoupon(HttpExchange exchange, Long couponId) throws IOException {
+
+        String adminUserName = Utils.getAuthenticatedUserPhone(exchange);
+        if (adminUserName == null) {
+            return;
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(adminService.getCoupon(adminUserName, couponId)));
+    }
+
+    private void handleGetAllCoupons(HttpExchange exchange) throws IOException {
+        String adminUserName = Utils.getAuthenticatedUserPhone(exchange);
+        if (adminUserName == null) {
+            return;
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(adminService.getCouponsList(adminUserName)));
     }
 
 }

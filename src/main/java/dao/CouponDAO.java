@@ -6,6 +6,7 @@ import org.hibernate.Transaction;
 import org.hibernate.query.Query;
 import util.HibernateUtil;
 
+import java.util.List;
 import java.util.Optional;
 
 public class CouponDAO {
@@ -46,7 +47,6 @@ public class CouponDAO {
         }
     }
 
-
     public Optional<Coupon> findCouponById(Long couponId) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Coupon coupon = session.get(Coupon.class, couponId);
@@ -82,5 +82,17 @@ public class CouponDAO {
                 session.close();
             }
         }
+    }
+
+    public List<Coupon> findAllCoupons() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<Coupon> query = session.createQuery("FROM Coupon", Coupon.class);
+            return query.list();
+        }catch (Exception e) {
+            System.err.println("Error while finding all coupons: " + e.getMessage());
+            e.printStackTrace();
+            return List.of();
+        }
+
     }
 }

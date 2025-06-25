@@ -39,5 +39,14 @@ public class RestaurantServiceExceptions extends RuntimeException {
     public static class RestaurantAlreadyFavorite extends RuntimeException {
         public RestaurantAlreadyFavorite(String message) { super(message); }
     }
+
+    public static class RatingNotFound extends RuntimeException {
+        public RatingNotFound(String message) { super(message); }
+    }
+
+    public static class NotRatingOwner extends RuntimeException {
+        public NotRatingOwner(String message) { super(message); }
+    }
+
 }
 

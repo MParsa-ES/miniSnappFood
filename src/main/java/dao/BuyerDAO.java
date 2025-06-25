@@ -23,7 +23,7 @@ public class BuyerDAO {
 
     public List<Restaurant> SearchVendors(String searchTerm, List<String> keywords) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            StringBuilder hql = new StringBuilder("SELECT DISTINCT r FROM Restaurant r "); // Use SELECT DISTINCT r to avoid duplicate restaurants
+            StringBuilder hql = new StringBuilder("SELECT DISTINCT r FROM Restaurant r ");
 
             List<String> conditions = new ArrayList<>();
             Map<String, Object> params = new HashMap<>();

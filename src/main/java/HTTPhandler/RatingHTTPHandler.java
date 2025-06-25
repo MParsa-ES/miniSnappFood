@@ -13,12 +13,14 @@ import io.jsonwebtoken.io.IOException;
 import service.BuyerService;
 import service.RatingService;
 import service.exception.OrderServiceExceptions;
+import service.exception.RestaurantServiceExceptions;
 import service.exception.UserNotFoundException;
 import util.RateLimiter;
 import util.Utils;
 
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 
 public class RatingHTTPHandler implements HttpHandler {
 
@@ -44,9 +46,18 @@ public class RatingHTTPHandler implements HttpHandler {
         try {
             if (path.equals("/ratings") && "POST".equals(method)) {
                 handleSubmitRating(exchange);
-            } else if (path.matches("/vendors/\\d+") && "GET".equals(method)) {
+            } else if (path.matches("/ratings/items/\\d+") && "GET".equals(method)) {
+                Long id = Long.parseLong(path.split("/")[3]);
+                handleGetItemRatings(exchange, id);
+            } else if (path.matches("/ratings/\\d+") && "GET".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
-                //handleItemList(exchange, id);
+                handleGetRating(exchange, id);
+            } else if (path.matches("/ratings/\\d+") && "DELETE".equals(method)) {
+                Long id = Long.parseLong(path.split("/")[2]);
+                handleDeleteRating(exchange, id);
+            } else if (path.matches("/ratings/\\d+") && "PUT".equals(method)) {
+                Long id = Long.parseLong(path.split("/")[2]);
+                handleUpdateRating(exchange, id);
             }
         } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid input: " + e.getMessage())));
@@ -59,13 +70,13 @@ public class RatingHTTPHandler implements HttpHandler {
     }
 
     private void handleSubmitRating(HttpExchange exchange) throws IOException, java.io.IOException {
-//        if (Utils.checkUnathorizedMediaType(exchange)) {
-//            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
-//            return;
-//        }
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
+            return;
+        }
 
         if (Utils.getAuthenticatedUserPhone(exchange) == null) {
-            return;
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
         }
 
         RatingDTO.Request requestDto;
@@ -82,9 +93,78 @@ public class RatingHTTPHandler implements HttpHandler {
             String phone = Utils.getAuthenticatedUserPhone(exchange);
             MessageDto response = RatingService.SubmitRating(requestDto, phone);
             Utils.sendResponse(exchange, 200, gson.toJson(response));
+        } catch (OrderServiceExceptions.OrderNotFound | OrderServiceExceptions.OrderNotCompleted | OrderServiceExceptions.RatingAlreadyExists |
+                 UserNotFoundException | RestaurantServiceExceptions.NotRatingOwner  e) {
+            Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
+        }
+
+    }
+
+    private void handleGetItemRatings(HttpExchange exchange, Long itemId) throws IOException, java.io.IOException {
+        if (Utils.getAuthenticatedUserPhone(exchange) == null) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        }
+
+        try {
+            String phone = Utils.getAuthenticatedUserPhone(exchange);
+            RatingDTO.ItemRatings itemRatings = RatingService.getRatings(itemId, phone);
+            Utils.sendResponse(exchange, 200, gson.toJson(itemRatings));
         } catch (OrderServiceExceptions | UserNotFoundException e) {
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
         }
+    }
+
+    private void handleGetRating(HttpExchange exchange, Long id) throws IOException, java.io.IOException {
+        if (Utils.getAuthenticatedUserPhone(exchange) == null) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        }
+
+        try {
+            RatingDTO.Rating rating = RatingService.getRating(id);
+            Utils.sendResponse(exchange, 200, gson.toJson(rating));
+        } catch (RestaurantServiceExceptions.RatingNotFound e) {
+            Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
+        }
+    }
+
+    private void handleDeleteRating(HttpExchange exchange, Long id) throws IOException, java.io.IOException {
+        if (Utils.getAuthenticatedUserPhone(exchange) == null) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        }
+
+        try {
+            String phone = Utils.getAuthenticatedUserPhone(exchange);
+            MessageDto response = RatingService.deleteRating(id, phone);
+            Utils.sendResponse(exchange, 200, gson.toJson(response));
+        } catch (RestaurantServiceExceptions.NotRatingOwner | RestaurantServiceExceptions.RatingNotFound | UserNotFoundException e) {
+            Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
+        }
+    }
+
+    private void handleUpdateRating(HttpExchange exchange, Long id) throws IOException, java.io.IOException {
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
+            return;
+        }
+
+        if (Utils.getAuthenticatedUserPhone(exchange) == null) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        }
+
+        RatingDTO.Update updateDto;
+        try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+            updateDto = gson.fromJson(reader, RatingDTO.Update.class);
+
+            if (updateDto == null) {
+                Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
+                return;
+            }
+        }
+
+        String phone = Utils.getAuthenticatedUserPhone(exchange);
+
+        MessageDto response = RatingService.updateRating(updateDto, id, phone);
+        Utils.sendResponse(exchange, 200, gson.toJson(response));
 
     }
 

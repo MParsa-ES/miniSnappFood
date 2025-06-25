@@ -60,6 +60,17 @@ public class FoodItemDAO {
         }
     }
 
+    public Optional<FoodItem> findOnlyFoodItemById(Long FoodItemId) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<FoodItem> query = session.createQuery("FROM FoodItem f WHERE f.id = :FoodItemId", FoodItem.class);
+            query.setParameter("FoodItemId", FoodItemId);
+            return query.uniqueResultOptional();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Optional.empty();
+        }
+    }
+
     public FoodItem update(FoodItem foodItem) {
         Transaction transaction = null;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {

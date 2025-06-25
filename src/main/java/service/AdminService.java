@@ -144,6 +144,39 @@ public class AdminService {
 
     }
 
+    public MessageDto deleteCoupon(String adminUserName, Long couponId) throws
+            UserNotFoundException, AdminServiceExceptions.UserNotAdminException, CouponServiceExceptions.CouponNotFound {
+        User admin = userDAO.findByPhone(adminUserName).orElseThrow(
+                () -> new UserNotFoundException("User not found")
+        );
+        if (!admin.getRole().equals(Role.ADMIN)) {
+            throw new AdminServiceExceptions.UserNotAdminException("You are not admin");
+        }
+
+        Coupon coupon = couponDAO.findCouponById(couponId).orElseThrow(
+                () -> new CouponServiceExceptions.CouponNotFound("Coupon could not be found")
+        );
+
+        couponDAO.delete(coupon);
+
+        return new MessageDto("Coupon deleted");
+    }
+
+    public CouponDto.Response getCoupon(String adminUserName, Long couponId){
+
+        User admin = userDAO.findByPhone(adminUserName).orElseThrow(
+                () -> new UserNotFoundException("User not found")
+        );
+        if (!admin.getRole().equals(Role.ADMIN)) {
+            throw new AdminServiceExceptions.UserNotAdminException("You are not admin");
+        }
+        Coupon coupon = couponDAO.findCouponById(couponId).orElseThrow(
+                () -> new CouponServiceExceptions.CouponNotFound("Coupon could not be found")
+        );
+
+        return mapCouponToResponseDto(coupon);
+    }
+
     private UserLoginDto.Response.UserData mapToUserDataDto(User user) {
 
         UserLoginDto.Response.UserData userData = new UserLoginDto.Response.UserData();

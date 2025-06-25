@@ -49,7 +49,11 @@ public class CouponDAO {
 
     public Optional<Coupon> findCouponById(Long couponId) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return Optional.of(session.get(Coupon.class, couponId));
+            Coupon coupon = session.get(Coupon.class, couponId);
+            if (coupon != null) {
+                return Optional.of(coupon);
+            }
+            return Optional.empty();
         } catch (Exception e) {
             System.err.println("Error while finding Coupon with ID" + couponId + ": " + e.getMessage());
             e.printStackTrace();
@@ -64,14 +68,15 @@ public class CouponDAO {
         try {
             session = HibernateUtil.getSessionFactory().openSession();
             transaction = session.beginTransaction();
-            session.delete(coupon);
+            session.delete(session.merge(coupon));
             transaction.commit();
         } catch (Exception e) {
-            System.err.println("Error while deleting coupon: " + e.getMessage());
             if (transaction != null) {
                 transaction.rollback();
             }
-            throw new RuntimeException("Error while deleting coupon: " + e.getMessage());
+            System.err.println("Error while deleting coupon: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error while deleting coupon: " + e.getMessage(), e);
         } finally {
             if (session != null && session.isOpen()) {
                 session.close();

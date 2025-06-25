@@ -8,4 +8,10 @@ public class CouponServiceExceptions extends RuntimeException {
       }
     }
 
+    public static class CouponNotFound extends RuntimeException {
+        public CouponNotFound(String message) {
+            super(message);
+        }
+    }
+
 }

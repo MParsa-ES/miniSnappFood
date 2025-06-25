@@ -3,10 +3,8 @@ package entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import entity.Role;
 
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 
@@ -51,6 +49,10 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "restaurant_id")
     )
     private Set<Restaurant> favoriteRestaurants = new HashSet<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ApprovalStatus approvalStatus;
 
 
     public User(){}

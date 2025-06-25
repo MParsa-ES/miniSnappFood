@@ -4,7 +4,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class RateLimiter {
-    private static final int MAX_REQUESTS = 10;
+    private static final int MAX_REQUESTS = 100;
     private static final long TIME_WINDOW_MS = 60 * 1000;
 
 

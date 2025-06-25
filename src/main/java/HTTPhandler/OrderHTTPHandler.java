@@ -69,7 +69,8 @@ public class OrderHTTPHandler implements HttpHandler {
         } catch (UserNotFoundException | RestaurantServiceExceptions.RestaurantNotFound |
                  RestaurantServiceExceptions.ItemNotFound | OrderServiceExceptions.OrderNotFound e) {
             Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
-        } catch (OrderServiceExceptions.UserNotBuyer | OrderServiceExceptions.NotOwnerOfOrder e){
+        } catch (OrderServiceExceptions.UserNotBuyer | OrderServiceExceptions.NotOwnerOfOrder |
+                 RestaurantServiceExceptions.SellerNotApproved e){
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (OrderServiceExceptions.ItemOutOfStock e) {
             Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto(e.getMessage())));

@@ -1,5 +1,5 @@
 package entity;
 
 public enum Role {
-    BUYER, SELLER, COURIER
+    BUYER, SELLER, COURIER, ADMIN
 }

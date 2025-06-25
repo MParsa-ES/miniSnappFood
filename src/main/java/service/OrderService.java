@@ -31,10 +31,14 @@ public class OrderService {
             UserNotFoundException, RestaurantServiceExceptions.RestaurantNotFound,
             IllegalArgumentException, RestaurantServiceExceptions.ItemNotFound {
         User customer = userDAO.findByPhone(customerUserPhone).
-                orElseThrow(() -> new UserNotFoundException("Customer not found"));
+                orElseThrow(() -> new UserNotFoundException("Buyer not found"));
 
         if (!customer.getRole().equals(Role.BUYER)) {
             throw new OrderServiceExceptions.UserNotBuyer("This user is not a buyer");
+        }
+
+        if (!customer.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
+            throw new RestaurantServiceExceptions.SellerNotApproved("This is Buyer is not approved");
         }
 
         Restaurant restaurant = restaurantDAO.findRestaurantById(requestDto.getVendor_id())
@@ -115,10 +119,14 @@ public class OrderService {
     public ArrayList<OrderDto.OrderResponse> getOrderHistory(String customerUserPhone, String vendorName, String foodName) throws
             UserNotFoundException, OrderServiceExceptions.UserNotBuyer {
         User customer = userDAO.findByPhone(customerUserPhone).
-                orElseThrow(() -> new UserNotFoundException("Customer not found"));
+                orElseThrow(() -> new UserNotFoundException("Buyer not found"));
 
         if (!customer.getRole().equals(Role.BUYER)) {
             throw new OrderServiceExceptions.UserNotBuyer("This user is not a buyer");
+        }
+
+        if (!customer.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
+            throw new RestaurantServiceExceptions.SellerNotApproved("This is Buyer is not approved");
         }
 
         ArrayList<OrderDto.OrderResponse> response = new ArrayList<>();
@@ -133,10 +141,14 @@ public class OrderService {
             OrderServiceExceptions.NotOwnerOfOrder, OrderServiceExceptions.UserNotBuyer {
 
         User customer = userDAO.findByPhone(customerUserPhone).
-                orElseThrow(() -> new UserNotFoundException("Customer not found"));
+                orElseThrow(() -> new UserNotFoundException("Buyer not found"));
 
         if (!customer.getRole().equals(Role.BUYER)) {
             throw new OrderServiceExceptions.UserNotBuyer("This user is not a buyer");
+        }
+
+        if (!customer.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
+            throw new RestaurantServiceExceptions.SellerNotApproved("This is Buyer is not approved");
         }
 
         Order order = orderDAO.findOrderById(orderId).
@@ -159,6 +171,10 @@ public class OrderService {
 
         if (!owner.getRole().equals(Role.SELLER)) {
             throw new RestaurantServiceExceptions.UserNotSeller("This user is not a seller");
+        }
+
+        if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
+            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
         }
 
         Restaurant restaurant = restaurantDAO.findRestaurantById(restaurantId).orElseThrow(
@@ -184,6 +200,14 @@ public class OrderService {
 
         User owner = userDAO.findByPhone(ownerUserPhone).orElseThrow(
                 () -> new UserNotFoundException("User not found"));
+
+        if (!owner.getRole().equals(Role.SELLER)) {
+            throw new RestaurantServiceExceptions.UserNotSeller("This user is not a seller");
+        }
+
+        if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
+            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
+        }
 
         Restaurant restaurant = restaurantDAO.findRestaurantByOwner(owner).orElseThrow(
                 () -> new RestaurantServiceExceptions.RestaurantNotFound("You have no restaurant"));

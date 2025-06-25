@@ -18,6 +18,7 @@ public class Main {
         server.createContext("/vendors", new BuyerHTTPHandler());
         server.createContext("/items", new BuyerHTTPHandler());
         server.createContext("/favorites", new BuyerHTTPHandler());
+        server.createContext("/coupons", new BuyerHTTPHandler());
         server.createContext("/orders", new OrderHTTPHandler());
         server.createContext("/ratings", new RatingHTTPHandler());
         server.createContext("/deliveries", new DeliveryHTTPHandler());

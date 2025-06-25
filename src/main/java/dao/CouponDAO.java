@@ -118,4 +118,16 @@ public class CouponDAO {
             }
         }
     }
+
+    public Optional<Coupon> findCouponByCouponCode(String couponCode) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<Coupon> query = session.createQuery("FROM Coupon c WHERE c.couponCode = :couponCode", Coupon.class);
+            query.setParameter("couponCode", couponCode);
+            return query.uniqueResultOptional();
+        } catch (Exception e) {
+            System.err.println("Error while checking for coupon with code: " + e.getMessage());
+            e.printStackTrace();
+            return Optional.empty();
+        }
+    }
 }

@@ -1,22 +1,11 @@
 package service;
 
-import dao.BuyerDAO;
-import dao.FoodItemDAO;
-import dao.RestaurantDAO;
-import dao.UserDAO;
-import dto.BuyerDto;
-import dto.FoodItemDto;
-import dto.MessageDto;
-import dto.RestaurantDto;
-import entity.FoodItem;
-import entity.Menu;
-import entity.Restaurant;
-import entity.User;
-import org.hibernate.Session;
-import service.exception.MenuServiceExceptions;
-import service.exception.RestaurantServiceExceptions;
-import service.exception.UserNotFoundException;
+import dao.*;
+import dto.*;
+import entity.*;
+import service.exception.*;
 
+import java.time.LocalDate;
 import java.util.*;
 
 public class BuyerService {
@@ -24,12 +13,14 @@ public class BuyerService {
     private final RestaurantDAO restaurantDAO;
     private final FoodItemDAO foodItemDAO;
     private final BuyerDAO buyerDAO;
+    private final CouponDAO couponDAO;
 
-    public BuyerService(UserDAO userDAO, RestaurantDAO restaurantDAO, FoodItemDAO foodItemDAO, BuyerDAO buyerDAO) {
+    public BuyerService(UserDAO userDAO, RestaurantDAO restaurantDAO, FoodItemDAO foodItemDAO, BuyerDAO buyerDAO, CouponDAO couponDAO) {
         this.userDAO = userDAO;
         this.restaurantDAO = restaurantDAO;
         this.foodItemDAO = foodItemDAO;
         this.buyerDAO = buyerDAO;
+        this.couponDAO = couponDAO;
     }
 
     public List<RestaurantDto.Response> GetVendorsList(String search, List<String> keywords) throws RestaurantServiceExceptions {
@@ -70,11 +61,11 @@ public class BuyerService {
         List<String> menu_titles = new ArrayList<>();
         Map<String, List<FoodItemDto.Response>> menusMap = new HashMap<>();
 
-        for (Menu menu: restaurant.getMenus()){
+        for (Menu menu : restaurant.getMenus()) {
             List<FoodItemDto.Response> itemsDto = new ArrayList<>();
             menu_titles.add(menu.getTitle());
 
-            for (FoodItem item: menu.getFoodItems()){
+            for (FoodItem item : menu.getFoodItems()) {
                 itemsDto.add(new FoodItemDto.Response(
                         item.getId(),
                         item.getName(),
@@ -97,7 +88,7 @@ public class BuyerService {
 
         List<FoodItem> items = buyerDAO.getItemList(search, price, keywords);
         List<FoodItemDto.Response> responses = new ArrayList<>();
-        for (FoodItem item: items) {
+        for (FoodItem item : items) {
             responses.add(new FoodItemDto.Response(
                     item.getId(),
                     item.getName(),
@@ -136,7 +127,7 @@ public class BuyerService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         List<RestaurantDto.Response> responses = new ArrayList<>();
-        for(Restaurant restaurant: user.getFavoriteRestaurants()){
+        for (Restaurant restaurant : user.getFavoriteRestaurants()) {
             responses.add(new RestaurantDto.Response(
                     restaurant.getId(),
                     restaurant.getName(),
@@ -160,7 +151,7 @@ public class BuyerService {
         Restaurant restaurant = restaurantDAO.findRestaurantById(restaurantId)
                 .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found"));
 
-        if(user.getFavoriteRestaurants().contains(restaurant)){
+        if (user.getFavoriteRestaurants().contains(restaurant)) {
             throw new RestaurantServiceExceptions.RestaurantAlreadyFavorite("Restaurant already favorite");
         }
 
@@ -178,7 +169,7 @@ public class BuyerService {
         Restaurant restaurant = restaurantDAO.findRestaurantById(restaurantId)
                 .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found"));
 
-        if(!user.getFavoriteRestaurants().contains(restaurant)){
+        if (!user.getFavoriteRestaurants().contains(restaurant)) {
             return new MessageDto("Restaurant is not favourite");
         }
 
@@ -188,4 +179,46 @@ public class BuyerService {
 
     }
 
+    public CouponDto.Response checkCoupon(String customerUserPhone, String couponCode) throws
+            UserNotFoundException, CouponServiceExceptions.CouponNotFound,
+            OrderServiceExceptions.UserNotBuyer, CouponServiceExceptions.InvalidCoupon {
+
+        User customer = userDAO.findByPhone(customerUserPhone).orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (!customer.getRole().equals(Role.BUYER)){
+            throw new OrderServiceExceptions.UserNotBuyer("User not buyer");
+        }
+
+        Coupon coupon = couponDAO.findCouponByCouponCode(couponCode).orElseThrow(
+                () -> new CouponServiceExceptions.CouponNotFound("Coupon with code " + couponCode + "not found")
+        );
+
+        if (coupon.getUserCount() <= 0) {
+            throw new CouponServiceExceptions.InvalidCoupon("This coupon has no uses left");
+        }
+
+        if (LocalDate.now().isAfter(coupon.getEndDate())) {
+            throw new CouponServiceExceptions.InvalidCoupon("This coupon has expired");
+        }
+        if (LocalDate.now().isBefore(coupon.getStartDate())) {
+            throw new CouponServiceExceptions.InvalidCoupon("This coupon is not activated yet");
+        }
+
+        return mapCouponToResponseDto(coupon);
+
+    }
+
+
+    private CouponDto.Response mapCouponToResponseDto(Coupon coupon) {
+        CouponDto.Response response = new CouponDto.Response();
+        response.setId(coupon.getId());
+        response.setCoupon_code(coupon.getCouponCode());
+        response.setType(coupon.getCouponType().toString());
+        response.setValue(coupon.getCouponValue());
+        response.setMin_price(coupon.getMinPrice());
+        response.setUser_count(coupon.getUserCount());
+        response.setStart_date(coupon.getStartDate());
+        response.setEnd_date(coupon.getEndDate());
+        return response;
+    }
 }

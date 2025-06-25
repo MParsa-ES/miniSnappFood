@@ -4,28 +4,31 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import dao.BuyerDAO;
-import dao.FoodItemDAO;
-import dao.RestaurantDAO;
-import dao.UserDAO;
+import dao.*;
 import dto.*;
 import io.jsonwebtoken.io.IOException;
 import service.BuyerService;
+import service.exception.CouponServiceExceptions;
+import service.exception.OrderServiceExceptions;
+import service.exception.RestaurantServiceExceptions;
+import service.exception.UserNotFoundException;
+import util.LocalDateAdapter;
 import util.RateLimiter;
 import util.Utils;
 
 
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
 
 public class BuyerHTTPHandler implements HttpHandler {
 
-    private final Gson gson = new GsonBuilder().serializeNulls().create();
+    private final Gson gson = new GsonBuilder().registerTypeAdapter(LocalDate.class, new LocalDateAdapter()).serializeNulls().create();
     private final BuyerService buyerService;
 
     public BuyerHTTPHandler() {
-        this.buyerService = new BuyerService(new UserDAO(), new RestaurantDAO(), new FoodItemDAO(), new BuyerDAO());
+        this.buyerService = new BuyerService(new UserDAO(), new RestaurantDAO(), new FoodItemDAO(), new BuyerDAO(), new CouponDAO());
     }
 
     @Override
@@ -58,9 +61,22 @@ public class BuyerHTTPHandler implements HttpHandler {
             } else if (path.matches("/favorites/\\d+") && "DELETE".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
                 handleRemoveFavorite(exchange, id);
+            } else if (path.equals("/coupons") && "GET".equals(method)) {
+                handleCheckCoupon(exchange);
+
+            } else {
+                Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Buyer endpoint not found.")));
             }
+        } catch (CouponServiceExceptions.CouponNotFound | UserNotFoundException |
+                 RestaurantServiceExceptions.RestaurantNotFound | RestaurantServiceExceptions.ItemNotFound e) {
+            Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
+        } catch (CouponServiceExceptions.InvalidCoupon | OrderServiceExceptions.UserNotBuyer e) {
+            Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
+        } catch (RestaurantServiceExceptions.RestaurantAlreadyFavorite |
+                 RestaurantServiceExceptions.RestaurantAlreadyExists e) {
+            Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (IllegalArgumentException e) {
-            Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid input: " + e.getMessage())));
+            Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (com.google.gson.JsonSyntaxException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid JSON format: " + e.getMessage())));
         } catch (Exception e) {
@@ -148,12 +164,10 @@ public class BuyerHTTPHandler implements HttpHandler {
     }
 
     private void handleAddFavorite(HttpExchange exchange, Long restaurantId) throws java.io.IOException {
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
-        }
-
-        String token = exchange.getRequestHeaders().getFirst("Authorization");
         String phone = Utils.getAuthenticatedUserPhone(exchange);
+        if (phone == null) {
+            return;
+        }
 
         MessageDto messageDto = buyerService.addFavoriteRestaurant(restaurantId, phone);
         Utils.sendResponse(exchange, 200, gson.toJson(messageDto));
@@ -161,15 +175,43 @@ public class BuyerHTTPHandler implements HttpHandler {
     }
 
     private void handleRemoveFavorite(HttpExchange exchange, Long restaurantId) throws java.io.IOException {
-        if (!Utils.isTokenValid(exchange)) {
-            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
-        }
-
-        String token = exchange.getRequestHeaders().getFirst("Authorization");
         String phone = Utils.getAuthenticatedUserPhone(exchange);
+        if (phone == null) {
+            return;
+        }
 
         MessageDto messageDto = buyerService.removeFavoriteRestaurant(restaurantId, phone);
         Utils.sendResponse(exchange, 200, gson.toJson(messageDto));
+
+    }
+
+    private void handleCheckCoupon(HttpExchange exchange) throws java.io.IOException {
+
+        String customerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+
+        if (customerUserPhone == null) {
+            return;
+        }
+
+        String query = exchange.getRequestURI().getQuery();
+        String couponCode = null;
+
+        if (query != null) {
+            for (String param : query.split("&")) {
+                String[] pair = param.split("=", 2);
+
+                if (pair.length > 1 && pair[0].equals("coupon_code")) {
+                    couponCode = java.net.URLDecoder.decode(pair[1], StandardCharsets.UTF_8);
+                    break;
+                }
+            }
+        }
+
+        if (couponCode == null || couponCode.isBlank()) {
+            throw new IllegalArgumentException("Required parameter 'coupon_code' is missing");
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(buyerService.checkCoupon(customerUserPhone, couponCode)));
 
     }
 

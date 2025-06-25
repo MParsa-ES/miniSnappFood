@@ -54,7 +54,7 @@ public class FoodItem {
     @Column(name = "average_rating", precision = 3, scale = 2)
     private BigDecimal averageRating = BigDecimal.ZERO;
 
-    int numberOfRatings;
+    private Integer numberOfRatings;
     
 
 }

@@ -14,4 +14,10 @@ public class CouponServiceExceptions extends RuntimeException {
         }
     }
 
+    public static class InvalidCoupon extends RuntimeException {
+        public InvalidCoupon(String message) {
+            super(message);
+        }
+    }
+
 }

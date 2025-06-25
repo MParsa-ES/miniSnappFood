@@ -50,22 +50,6 @@ public class UserDAO {
         }
     }
 
-    public User update(User user) {
-        Transaction transaction = null;
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            transaction = session.beginTransaction();
-            session.merge(user); // یا session.update(user)
-            transaction.commit();
-            return user;
-        } catch (Exception e) {
-            if (transaction != null && transaction.isActive()) {
-                transaction.rollback();
-            }
-            throw new RuntimeException("Could not update user", e);
-        }
-    }
-
-
     public List<User> getAllUsers(){
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {

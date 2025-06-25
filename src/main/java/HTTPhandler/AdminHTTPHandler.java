@@ -4,28 +4,36 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import dao.CouponDAO;
 import dao.OrderDAO;
 import dao.UserDAO;
 import dto.AdminDto;
+import dto.CouponDto;
 import dto.ErrorResponseDto;
 import service.AdminService;
 import service.exception.AdminServiceExceptions;
+import service.exception.CouponServiceExceptions;
 import service.exception.UserNotFoundException;
 import util.RateLimiter;
 import util.Utils;
+import util.LocalDateAdapter;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 
 public class AdminHTTPHandler implements HttpHandler {
 
-    private final Gson gson = new GsonBuilder().serializeNulls().create();
+    private final Gson gson = new GsonBuilder().
+            registerTypeAdapter(LocalDate.class, new LocalDateAdapter()).serializeNulls().create();
+
     private final AdminService adminService;
 
 
     public AdminHTTPHandler() {
-        this.adminService = new AdminService(new UserDAO(), new OrderDAO());
+        this.adminService = new AdminService(new UserDAO(), new OrderDAO(), new CouponDAO());
 
     }
 
@@ -56,6 +64,10 @@ public class AdminHTTPHandler implements HttpHandler {
                 handleGetAllOrdersWithFilters(exchange);
 
 
+            } else if (path.equals("/admin/coupons") && method.equals("POST")) {
+                handleCreateCoupon(exchange);
+
+
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Admin endpoint not found.")));
 
@@ -65,6 +77,8 @@ public class AdminHTTPHandler implements HttpHandler {
             Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (AdminServiceExceptions.UserNotAdminException e) {
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
+        } catch (CouponServiceExceptions.DuplicateCouponCode e) {
+            Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (Exception e) {
@@ -157,5 +171,53 @@ public class AdminHTTPHandler implements HttpHandler {
         Utils.sendResponse(exchange, 200, gson.toJson(adminService.getOrdersList(adminUserName, search, vendor, courier, customer, status)));
     }
 
+    private void handleCreateCoupon(HttpExchange exchange) throws IOException {
+
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unauthorized Media Type")));
+            return;
+        }
+
+        String adminUserName = Utils.getAuthenticatedUserPhone(exchange);
+        if (adminUserName == null) {
+            return;
+        }
+
+        CouponDto.CreateRequest requestDto;
+
+        try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+            requestDto = gson.fromJson(reader, CouponDto.CreateRequest.class);
+
+            if (requestDto == null) {
+                throw new IllegalArgumentException("Invalid coupon request");
+            }
+
+            if (requestDto.getCoupon_code() == null || requestDto.getCoupon_code().isBlank()) {
+                throw new IllegalArgumentException("Invalid coupon code");
+            }
+            if (requestDto.getValue() == null || requestDto.getValue().equals(BigDecimal.ZERO)){
+                throw new IllegalArgumentException("Invalid coupon value");
+            }
+            if (requestDto.getMin_price() == null) {
+                throw new IllegalArgumentException("Invalid min price");
+            }
+            if (requestDto.getType() == null || requestDto.getType().isBlank()) {
+                throw new IllegalArgumentException("Invalid coupon type");
+            }
+            if (requestDto.getUser_count() == null) {
+                throw new IllegalArgumentException("Invalid coupon count");
+            }
+            if (requestDto.getStart_date() == null) {
+                throw new IllegalArgumentException("Invalid coupon start date");
+            }
+            if (requestDto.getEnd_date() == null) {
+                throw new IllegalArgumentException("Invalid coupon end date");
+            }
+        }
+
+        Utils.sendResponse(exchange, 201, gson.toJson(adminService.createCoupon(adminUserName, requestDto)));
+
+
+    }
 
 }

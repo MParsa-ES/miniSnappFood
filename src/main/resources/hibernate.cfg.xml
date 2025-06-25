@@ -38,6 +38,7 @@
         <mapping class="entity.Category"/>
         <mapping class="entity.Order"/>
         <mapping class="entity.OrderItem"/>
+        <mapping class="entity.Coupon"/>
 
     </session-factory>
 </hibernate-configuration>

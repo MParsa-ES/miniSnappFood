@@ -1,13 +1,12 @@
 package service;
 
+import dao.CouponDAO;
 import dao.OrderDAO;
 import dao.UserDAO;
-import dto.AdminDto;
-import dto.MessageDto;
-import dto.OrderDto;
-import dto.UserLoginDto;
+import dto.*;
 import entity.*;
 import service.exception.AdminServiceExceptions;
+import service.exception.CouponServiceExceptions;
 import service.exception.UserNotFoundException;
 
 import java.util.ArrayList;
@@ -16,10 +15,12 @@ public class AdminService {
 
     private final UserDAO userDAO;
     private final OrderDAO orderDAO;
+    private final CouponDAO couponDAO;
 
-    public AdminService(UserDAO userDAO, OrderDAO orderDAO) {
+    public AdminService(UserDAO userDAO, OrderDAO orderDAO, CouponDAO couponDAO) {
         this.userDAO = userDAO;
         this.orderDAO = orderDAO;
+        this.couponDAO = couponDAO;
     }
 
 
@@ -93,6 +94,56 @@ public class AdminService {
 
     }
 
+    public CouponDto.Response createCoupon(String adminUserName, CouponDto.CreateRequest requestDto) throws
+            IllegalArgumentException, UserNotFoundException, AdminServiceExceptions.UserNotAdminException,
+            CouponServiceExceptions.DuplicateCouponCode {
+
+        User admin = userDAO.findByPhone(adminUserName).orElseThrow(
+                () -> new UserNotFoundException("User not found")
+        );
+
+        if (!admin.getRole().equals(Role.ADMIN)) {
+            throw new AdminServiceExceptions.UserNotAdminException("You are not admin");
+        }
+
+        if (couponDAO.findCouponByCode(requestDto.getCoupon_code()).isPresent()){
+            throw new CouponServiceExceptions.DuplicateCouponCode("Coupon code already exists");
+        }
+
+        Coupon coupon = new Coupon();
+
+        coupon.setCouponCode(requestDto.getCoupon_code());
+        try {
+            coupon.setCouponType(CouponType.valueOf(requestDto.getType().toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid coupon type");
+        }
+        coupon.setCouponValue(requestDto.getValue());
+        coupon.setMinPrice(requestDto.getMin_price());
+        coupon.setUserCount(requestDto.getUser_count());
+        coupon.setStartDate(requestDto.getStart_date());
+        coupon.setEndDate(requestDto.getEnd_date());
+
+
+        if (coupon.getStartDate().isAfter(coupon.getEndDate())) {
+            throw new IllegalArgumentException("Coupon start date is after end date");
+        }
+        if (coupon.getStartDate().isEqual(coupon.getEndDate())) {
+            throw new IllegalArgumentException("Coupon start date is equal with end date");
+        }
+        if (coupon.getCouponType().equals(CouponType.PERCENT) && coupon.getCouponValue().intValue() > 100){
+            throw new IllegalArgumentException("Coupon value is greater than 100%");
+        }
+        if (coupon.getUserCount() <= 0){
+            throw new IllegalArgumentException("Coupon user count must be greater than 0");
+        }
+
+        couponDAO.save(coupon);
+
+        return mapCouponToResponseDto(coupon);
+
+    }
+
     private UserLoginDto.Response.UserData mapToUserDataDto(User user) {
 
         UserLoginDto.Response.UserData userData = new UserLoginDto.Response.UserData();
@@ -147,6 +198,19 @@ public class AdminService {
         }
         response.setItem_ids(itemIds);
 
+        return response;
+    }
+
+    private CouponDto.Response mapCouponToResponseDto(Coupon coupon) {
+        CouponDto.Response response = new CouponDto.Response();
+        response.setId(coupon.getId());
+        response.setCoupon_code(coupon.getCouponCode());
+        response.setType(coupon.getCouponType().toString());
+        response.setValue(coupon.getCouponValue());
+        response.setMin_price(coupon.getMinPrice());
+        response.setUser_count(coupon.getUserCount());
+        response.setStart_date(coupon.getStartDate());
+        response.setEnd_date(coupon.getEndDate());
         return response;
     }
 }

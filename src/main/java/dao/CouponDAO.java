@@ -6,6 +6,7 @@ import org.hibernate.Transaction;
 import org.hibernate.query.Query;
 import util.HibernateUtil;
 
+import java.util.List;
 import java.util.Optional;
 
 public class CouponDAO {
@@ -46,10 +47,13 @@ public class CouponDAO {
         }
     }
 
-
     public Optional<Coupon> findCouponById(Long couponId) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return Optional.of(session.get(Coupon.class, couponId));
+            Coupon coupon = session.get(Coupon.class, couponId);
+            if (coupon != null) {
+                return Optional.of(coupon);
+            }
+            return Optional.empty();
         } catch (Exception e) {
             System.err.println("Error while finding Coupon with ID" + couponId + ": " + e.getMessage());
             e.printStackTrace();
@@ -64,14 +68,50 @@ public class CouponDAO {
         try {
             session = HibernateUtil.getSessionFactory().openSession();
             transaction = session.beginTransaction();
-            session.delete(coupon);
+            session.delete(session.merge(coupon));
             transaction.commit();
         } catch (Exception e) {
-            System.err.println("Error while deleting coupon: " + e.getMessage());
             if (transaction != null) {
                 transaction.rollback();
             }
-            throw new RuntimeException("Error while deleting coupon: " + e.getMessage());
+            System.err.println("Error while deleting coupon: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error while deleting coupon: " + e.getMessage(), e);
+        } finally {
+            if (session != null && session.isOpen()) {
+                session.close();
+            }
+        }
+    }
+
+    public List<Coupon> findAllCoupons() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<Coupon> query = session.createQuery("FROM Coupon", Coupon.class);
+            return query.list();
+        }catch (Exception e) {
+            System.err.println("Error while finding all coupons: " + e.getMessage());
+            e.printStackTrace();
+            return List.of();
+        }
+
+    }
+
+    public void update(Coupon coupon) {
+        Session session = null;
+        Transaction transaction = null;
+
+        try {
+            session = HibernateUtil.getSessionFactory().openSession();
+            transaction = session.beginTransaction();
+            session.merge(coupon);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            System.err.println("Error while updating coupon: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error while updating coupon: " + e.getMessage(), e);
         } finally {
             if (session != null && session.isOpen()) {
                 session.close();

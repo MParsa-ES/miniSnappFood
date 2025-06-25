@@ -14,7 +14,7 @@ public class CouponDto {
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class CreateRequest {
+    public static class Request {
         private String coupon_code;
         private String type;
         private BigDecimal value;

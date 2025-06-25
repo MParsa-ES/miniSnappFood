@@ -20,7 +20,6 @@ import util.LocalDateAdapter;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 
@@ -68,12 +67,31 @@ public class AdminHTTPHandler implements HttpHandler {
                 handleCreateCoupon(exchange);
 
 
+            } else if (path.matches("^/admin/coupons/\\d+$") && method.equals("DELETE")) {
+                Long couponId = Long.parseLong(path.split("/")[3]);
+                handleDeleteCoupon(exchange, couponId);
+
+
+            } else if (path.matches("^/admin/coupons/\\d+$") && method.equals("GET")) {
+                Long couponId = Long.parseLong(path.split("/")[3]);
+                handleGetCoupon(exchange, couponId);
+
+
+            } else if (path.equals("/admin/coupons") && method.equals("GET")) {
+                handleGetAllCoupons(exchange);
+
+
+            } else if (path.matches("^/admin/coupons/\\d+$") && method.equals("PUT")) {
+                Long couponId = Long.parseLong(path.split("/")[3]);
+                handleUpdateCoupon(exchange, couponId);
+
+
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Admin endpoint not found.")));
 
 
             }
-        } catch (UserNotFoundException e) {
+        } catch (UserNotFoundException | CouponServiceExceptions.CouponNotFound e) {
             Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (AdminServiceExceptions.UserNotAdminException e) {
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
@@ -183,10 +201,10 @@ public class AdminHTTPHandler implements HttpHandler {
             return;
         }
 
-        CouponDto.CreateRequest requestDto;
+        CouponDto.Request requestDto;
 
         try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
-            requestDto = gson.fromJson(reader, CouponDto.CreateRequest.class);
+            requestDto = gson.fromJson(reader, CouponDto.Request.class);
 
             if (requestDto == null) {
                 throw new IllegalArgumentException("Invalid coupon request");
@@ -195,7 +213,7 @@ public class AdminHTTPHandler implements HttpHandler {
             if (requestDto.getCoupon_code() == null || requestDto.getCoupon_code().isBlank()) {
                 throw new IllegalArgumentException("Invalid coupon code");
             }
-            if (requestDto.getValue() == null || requestDto.getValue().equals(BigDecimal.ZERO)){
+            if (requestDto.getValue() == null){
                 throw new IllegalArgumentException("Invalid coupon value");
             }
             if (requestDto.getMin_price() == null) {
@@ -217,6 +235,58 @@ public class AdminHTTPHandler implements HttpHandler {
 
         Utils.sendResponse(exchange, 201, gson.toJson(adminService.createCoupon(adminUserName, requestDto)));
 
+
+    }
+
+    private void handleDeleteCoupon(HttpExchange exchange, Long couponId) throws IOException {
+
+        String adminUserName = Utils.getAuthenticatedUserPhone(exchange);
+        if (adminUserName == null) {
+            return;
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(adminService.deleteCoupon(adminUserName, couponId)));
+    }
+
+    private void handleGetCoupon(HttpExchange exchange, Long couponId) throws IOException {
+
+        String adminUserName = Utils.getAuthenticatedUserPhone(exchange);
+        if (adminUserName == null) {
+            return;
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(adminService.getCoupon(adminUserName, couponId)));
+    }
+
+    private void handleGetAllCoupons(HttpExchange exchange) throws IOException {
+        String adminUserName = Utils.getAuthenticatedUserPhone(exchange);
+        if (adminUserName == null) {
+            return;
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(adminService.getCouponsList(adminUserName)));
+    }
+
+    private void handleUpdateCoupon(HttpExchange exchange, Long couponId) throws IOException {
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unauthorized Media Type")));
+            return;
+        }
+
+        String adminUserName = Utils.getAuthenticatedUserPhone(exchange);
+        if (adminUserName == null) {
+            return;
+        }
+
+        CouponDto.Request requestDto;
+        try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+            requestDto = gson.fromJson(reader, CouponDto.Request.class);
+            if (requestDto == null) {
+                throw new IllegalArgumentException("Invalid coupon update request");
+            }
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(adminService.updateCoupon(adminUserName, couponId, requestDto)));
 
     }
 

@@ -20,7 +20,6 @@ import util.LocalDateAdapter;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 
@@ -80,6 +79,11 @@ public class AdminHTTPHandler implements HttpHandler {
 
             } else if (path.equals("/admin/coupons") && method.equals("GET")) {
                 handleGetAllCoupons(exchange);
+
+
+            } else if (path.matches("^/admin/coupons/\\d+$") && method.equals("PUT")) {
+                Long couponId = Long.parseLong(path.split("/")[3]);
+                handleUpdateCoupon(exchange, couponId);
 
 
             } else {
@@ -197,10 +201,10 @@ public class AdminHTTPHandler implements HttpHandler {
             return;
         }
 
-        CouponDto.CreateRequest requestDto;
+        CouponDto.Request requestDto;
 
         try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
-            requestDto = gson.fromJson(reader, CouponDto.CreateRequest.class);
+            requestDto = gson.fromJson(reader, CouponDto.Request.class);
 
             if (requestDto == null) {
                 throw new IllegalArgumentException("Invalid coupon request");
@@ -209,7 +213,7 @@ public class AdminHTTPHandler implements HttpHandler {
             if (requestDto.getCoupon_code() == null || requestDto.getCoupon_code().isBlank()) {
                 throw new IllegalArgumentException("Invalid coupon code");
             }
-            if (requestDto.getValue() == null || requestDto.getValue().equals(BigDecimal.ZERO)){
+            if (requestDto.getValue() == null){
                 throw new IllegalArgumentException("Invalid coupon value");
             }
             if (requestDto.getMin_price() == null) {
@@ -261,6 +265,29 @@ public class AdminHTTPHandler implements HttpHandler {
         }
 
         Utils.sendResponse(exchange, 200, gson.toJson(adminService.getCouponsList(adminUserName)));
+    }
+
+    private void handleUpdateCoupon(HttpExchange exchange, Long couponId) throws IOException {
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unauthorized Media Type")));
+            return;
+        }
+
+        String adminUserName = Utils.getAuthenticatedUserPhone(exchange);
+        if (adminUserName == null) {
+            return;
+        }
+
+        CouponDto.Request requestDto;
+        try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+            requestDto = gson.fromJson(reader, CouponDto.Request.class);
+            if (requestDto == null) {
+                throw new IllegalArgumentException("Invalid coupon update request");
+            }
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(adminService.updateCoupon(adminUserName, couponId, requestDto)));
+
     }
 
 }

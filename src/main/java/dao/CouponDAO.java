@@ -95,4 +95,27 @@ public class CouponDAO {
         }
 
     }
+
+    public void update(Coupon coupon) {
+        Session session = null;
+        Transaction transaction = null;
+
+        try {
+            session = HibernateUtil.getSessionFactory().openSession();
+            transaction = session.beginTransaction();
+            session.merge(coupon);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            System.err.println("Error while updating coupon: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error while updating coupon: " + e.getMessage(), e);
+        } finally {
+            if (session != null && session.isOpen()) {
+                session.close();
+            }
+        }
+    }
 }

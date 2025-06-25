@@ -94,7 +94,7 @@ public class AdminService {
 
     }
 
-    public CouponDto.Response createCoupon(String adminUserName, CouponDto.CreateRequest requestDto) throws
+    public CouponDto.Response createCoupon(String adminUserName, CouponDto.Request requestDto) throws
             IllegalArgumentException, UserNotFoundException, AdminServiceExceptions.UserNotAdminException,
             CouponServiceExceptions.DuplicateCouponCode {
 
@@ -136,6 +136,9 @@ public class AdminService {
         }
         if (coupon.getUserCount() <= 0){
             throw new IllegalArgumentException("Coupon user count must be greater than 0");
+        }
+        if (coupon.getCouponValue().intValue() <= 0){
+            throw new IllegalArgumentException("Coupon value must be greater than 0");
         }
 
         couponDAO.save(coupon);
@@ -193,6 +196,74 @@ public class AdminService {
         }
 
         return coupons;
+    }
+
+    public CouponDto.Response updateCoupon(String adminUserName, Long couponId, CouponDto.Request requestDto){
+        User admin = userDAO.findByPhone(adminUserName).orElseThrow(
+                () -> new UserNotFoundException("User not found")
+        );
+        if (!admin.getRole().equals(Role.ADMIN)) {
+            throw new AdminServiceExceptions.UserNotAdminException("You are not admin");
+        }
+        Coupon coupon = couponDAO.findCouponById(couponId).orElseThrow(
+                () -> new CouponServiceExceptions.CouponNotFound("Coupon could not be found")
+        );
+
+        if (requestDto.getCoupon_code() != null && !requestDto.getCoupon_code().isBlank()){
+            if (!requestDto.getCoupon_code().equals(coupon.getCouponCode()) && couponDAO.findCouponByCode(requestDto.getCoupon_code()).isPresent()){
+                throw new CouponServiceExceptions.DuplicateCouponCode("Duplicate coupon code");
+            }
+        }
+
+
+        // updating the old coupon fields
+        if (requestDto.getCoupon_code() != null && !requestDto.getCoupon_code().isBlank()){
+            coupon.setCouponCode(requestDto.getCoupon_code());
+        }
+        if (requestDto.getType() != null && !requestDto.getType().isBlank()){
+            try {
+                coupon.setCouponType(CouponType.valueOf(requestDto.getType().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid coupon type");
+            }
+        }
+        if (requestDto.getValue() != null){
+            coupon.setCouponValue(requestDto.getValue());
+        }
+        if (requestDto.getMin_price() != null){
+            coupon.setMinPrice(requestDto.getMin_price());
+        }
+        if (requestDto.getUser_count() != null){
+            coupon.setUserCount(requestDto.getUser_count());
+        }
+        if (requestDto.getStart_date() != null){
+            coupon.setStartDate(requestDto.getStart_date());
+        }
+        if (requestDto.getEnd_date() != null){
+            coupon.setEndDate(requestDto.getEnd_date());
+        }
+
+        // checking the rules again
+        if (coupon.getStartDate().isAfter(coupon.getEndDate())) {
+            throw new IllegalArgumentException("Coupon start date is after end date");
+        }
+        if (coupon.getStartDate().isEqual(coupon.getEndDate())) {
+            throw new IllegalArgumentException("Coupon start date is equal with end date");
+        }
+        if (coupon.getCouponType().equals(CouponType.PERCENT) && coupon.getCouponValue().intValue() > 100){
+            throw new IllegalArgumentException("Coupon value is greater than 100%");
+        }
+        if (coupon.getUserCount() <= 0){
+            throw new IllegalArgumentException("Coupon user count must be greater than 0");
+        }
+        if (coupon.getCouponValue().intValue() <= 0){
+            throw new IllegalArgumentException("Coupon value must be greater than 0");
+        }
+
+        couponDAO.update(coupon);
+
+        return mapCouponToResponseDto(coupon);
+
     }
 
     private UserLoginDto.Response.UserData mapToUserDataDto(User user) {

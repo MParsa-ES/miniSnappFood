@@ -4,17 +4,12 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import dao.FoodItemDAO;
-import dao.OrderDAO;
-import dao.RestaurantDAO;
-import dao.UserDAO;
+import dao.*;
 import dto.ErrorResponseDto;
 import dto.OrderDto;
 
 import service.OrderService;
-import service.exception.OrderServiceExceptions;
-import service.exception.RestaurantServiceExceptions;
-import service.exception.UserNotFoundException;
+import service.exception.*;
 import util.RateLimiter;
 import util.Utils;
 
@@ -34,7 +29,8 @@ public class OrderHTTPHandler implements HttpHandler {
                 new UserDAO(),
                 new RestaurantDAO(),
                 new FoodItemDAO(),
-                new OrderDAO()
+                new OrderDAO(),
+                new CouponDAO()
         );
     }
 
@@ -67,10 +63,11 @@ public class OrderHTTPHandler implements HttpHandler {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Order endpoint not found")));
             }
         } catch (UserNotFoundException | RestaurantServiceExceptions.RestaurantNotFound |
-                 RestaurantServiceExceptions.ItemNotFound | OrderServiceExceptions.OrderNotFound e) {
+                 RestaurantServiceExceptions.ItemNotFound | OrderServiceExceptions.OrderNotFound |
+                CouponServiceExceptions.CouponNotFound e) {
             Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (OrderServiceExceptions.UserNotBuyer | OrderServiceExceptions.NotOwnerOfOrder |
-                 RestaurantServiceExceptions.SellerNotApproved e){
+                 UserNotApprovedException | CouponServiceExceptions.InvalidCoupon e){
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (OrderServiceExceptions.ItemOutOfStock e) {
             Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto(e.getMessage())));

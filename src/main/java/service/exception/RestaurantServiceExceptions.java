@@ -36,10 +36,6 @@ public class RestaurantServiceExceptions extends RuntimeException {
         public UserNotOwner(String message) { super(message); }
     }
 
-    public static class SellerNotApproved extends RuntimeException {
-        public SellerNotApproved(String message) { super(message); }
-    }
-
     public static class RestaurantAlreadyFavorite extends RuntimeException {
         public RestaurantAlreadyFavorite(String message) { super(message); }
     }

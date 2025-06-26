@@ -7,6 +7,7 @@ import dto.OrderDto;
 import entity.*;
 import service.exception.DeliveryServiceExceptions;
 import service.exception.OrderServiceExceptions;
+import service.exception.UserNotApprovedException;
 import service.exception.UserNotFoundException;
 
 import java.math.BigDecimal;
@@ -35,7 +36,7 @@ public class DeliveryService {
         }
 
         if (!courier.getApprovalStatus().equals(ApprovalStatus.APPROVED)){
-            throw new DeliveryServiceExceptions.CourierNotApproved("This courier is not approved");
+            throw new UserNotApprovedException("This courier is not approved");
         }
 
         ArrayList<OrderDto.OrderResponse> orders = new ArrayList<>();
@@ -62,7 +63,7 @@ public class DeliveryService {
         }
 
         if (!courier.getApprovalStatus().equals(ApprovalStatus.APPROVED)){
-            throw new DeliveryServiceExceptions.CourierNotApproved("This courier is not approved");
+            throw new UserNotApprovedException("This courier is not approved");
         }
 
         Order order = orderDAO.findOrderById(orderId).orElseThrow(
@@ -113,7 +114,7 @@ public class DeliveryService {
         }
 
         if (!courier.getApprovalStatus().equals(ApprovalStatus.APPROVED)){
-            throw new DeliveryServiceExceptions.CourierNotApproved("This courier is not approved");
+            throw new UserNotApprovedException("This courier is not approved");
         }
 
         ArrayList<OrderDto.OrderResponse> orders = new ArrayList<>();
@@ -131,7 +132,9 @@ public class DeliveryService {
         response.setDelivery_address(order.getDeliveryAddress());
         response.setCustomer_id(order.getCustomer().getId());
         response.setVendor_id(order.getRestaurant().getId());
-        // TODO: set the coupon id
+        if (order.getCoupon() != null){
+            response.setCoupon_id(order.getCoupon().getId());
+        }
         response.setRaw_price(order.getRawPrice());
         response.setTax_fee(order.getTaxFee());
         response.setAdditional_fee(order.getAdditionalFee());

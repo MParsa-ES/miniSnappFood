@@ -8,6 +8,7 @@ import dto.MessageDto;
 import entity.*;
 import service.exception.MenuServiceExceptions;
 import service.exception.RestaurantServiceExceptions;
+import service.exception.UserNotApprovedException;
 import service.exception.UserNotFoundException;
 
 import java.math.BigDecimal;
@@ -37,7 +38,7 @@ public class FoodItemService {
         }
 
         if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
-            throw new RestaurantServiceExceptions.SellerNotApproved("This is seller is not approved");
+            throw new UserNotApprovedException("This is seller is not approved");
         }
 
         Restaurant restaurant = restaurantDAO.findRestaurantByOwner(owner)
@@ -88,7 +89,7 @@ public class FoodItemService {
         }
 
         if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
-            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
+            throw new UserNotApprovedException("This seller is not approved");
         }
 
         Restaurant currentRestaurant = restaurantDAO.findRestaurantById(restaurantId)

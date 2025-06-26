@@ -12,10 +12,7 @@ import service.MenuService;
 import service.OrderService;
 import service.RestaurantService;
 
-import service.exception.MenuServiceExceptions;
-import service.exception.OrderServiceExceptions;
-import service.exception.UserNotFoundException;
-import service.exception.RestaurantServiceExceptions;
+import service.exception.*;
 
 import util.RateLimiter;
 import util.Utils;
@@ -36,7 +33,7 @@ public class RestaurantHttpHandler implements HttpHandler {
         this.restaurantService = new RestaurantService(new UserDAO(), new RestaurantDAO());
         this.foodItemService = new FoodItemService(new UserDAO(), new RestaurantDAO(), new FoodItemDAO());
         this.menuService = new MenuService(new UserDAO(), new MenuDAO(), new RestaurantDAO(), new FoodItemDAO());
-        this.orderService = new OrderService(new UserDAO(), new RestaurantDAO(), new FoodItemDAO(), new OrderDAO());
+        this.orderService = new OrderService(new UserDAO(), new RestaurantDAO(), new FoodItemDAO(), new OrderDAO(), new CouponDAO());
     }
 
     @Override
@@ -129,7 +126,7 @@ public class RestaurantHttpHandler implements HttpHandler {
                  RestaurantServiceExceptions.ItemAlreadyExists |
                  MenuServiceExceptions.MenuIsDuplicateException |
                  OrderServiceExceptions.RestaurantNotOwnerOfOrder |
-                 RestaurantServiceExceptions.SellerNotApproved e) {
+                 UserNotApprovedException e) {
             Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid input: " + e.getMessage())));

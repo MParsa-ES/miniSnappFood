@@ -25,10 +25,4 @@ public class DeliveryServiceExceptions extends RuntimeException {
             super(message);
         }
     }
-
-    public static class CourierNotApproved extends RuntimeException {
-        public CourierNotApproved(String message) {
-            super(message);
-        }
-    }
 }

@@ -11,6 +11,7 @@ import dto.OrderDto;
 import service.DeliveryService;
 import service.exception.DeliveryServiceExceptions;
 import service.exception.OrderServiceExceptions;
+import service.exception.UserNotApprovedException;
 import service.exception.UserNotFoundException;
 import util.RateLimiter;
 import util.Utils;
@@ -63,7 +64,7 @@ public class DeliveryHTTPHandler implements HttpHandler {
         } catch (UserNotFoundException | OrderServiceExceptions.OrderNotFound e) {
             Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (DeliveryServiceExceptions.UserNotCourier |
-                 DeliveryServiceExceptions.CourierNotApproved e) {
+                 UserNotApprovedException e) {
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (DeliveryServiceExceptions.OrderNotReadyForDelivery |
                  DeliveryServiceExceptions.OrderAlreadyAssignedToCourier | DeliveryServiceExceptions.CourierIsBusy e) {

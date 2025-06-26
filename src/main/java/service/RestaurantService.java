@@ -7,6 +7,7 @@ import entity.ApprovalStatus;
 import entity.Restaurant;
 import entity.User;
 import entity.Role;
+import service.exception.UserNotApprovedException;
 import service.exception.UserNotFoundException;
 import service.exception.RestaurantServiceExceptions;
 
@@ -36,7 +37,7 @@ public class RestaurantService {
         }
 
         if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
-            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
+            throw new UserNotApprovedException("This seller is not approved");
         }
 
         // a restaurant with this number already exists
@@ -78,7 +79,7 @@ public class RestaurantService {
         }
 
         if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
-            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
+            throw new UserNotApprovedException("This seller is not approved");
         }
 
         Restaurant ownerRestaurant = null;
@@ -130,7 +131,7 @@ public class RestaurantService {
         }
 
         if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
-            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
+            throw new UserNotApprovedException("This seller is not approved");
         }
 
         if (requestDto.getPhone() != null && !requestDto.getPhone().equals(currentRestaurant.getPhone()) && restaurantDAO.findByPhone(requestDto.getPhone()).isPresent()) {

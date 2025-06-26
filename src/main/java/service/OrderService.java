@@ -1,18 +1,14 @@
 package service;
 
-import dao.FoodItemDAO;
-import dao.OrderDAO;
-import dao.RestaurantDAO;
-import dao.UserDAO;
+import dao.*;
 import dto.MessageDto;
 import dto.OrderDto;
 import entity.*;
 import lombok.AllArgsConstructor;
-import service.exception.OrderServiceExceptions;
-import service.exception.RestaurantServiceExceptions;
-import service.exception.UserNotFoundException;
+import service.exception.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 
 
@@ -23,13 +19,16 @@ public class OrderService {
     private final RestaurantDAO restaurantDAO;
     private final FoodItemDAO foodItemDAO;
     private final OrderDAO orderDAO;
+    private final CouponDAO couponDAO;
 
 
     public OrderDto.OrderResponse createOrder(OrderDto.CreateRequest requestDto, String customerUserPhone) throws
             OrderServiceExceptions.UserNotBuyer,
             OrderServiceExceptions.ItemOutOfStock,
             UserNotFoundException, RestaurantServiceExceptions.RestaurantNotFound,
-            IllegalArgumentException, RestaurantServiceExceptions.ItemNotFound {
+            IllegalArgumentException, RestaurantServiceExceptions.ItemNotFound,
+            CouponServiceExceptions.CouponNotFound, UserNotApprovedException,
+            CouponServiceExceptions.InvalidCoupon {
         User customer = userDAO.findByPhone(customerUserPhone).
                 orElseThrow(() -> new UserNotFoundException("Buyer not found"));
 
@@ -38,14 +37,31 @@ public class OrderService {
         }
 
         if (!customer.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
-            throw new RestaurantServiceExceptions.SellerNotApproved("This is Buyer is not approved");
+            throw new UserNotApprovedException("This is Buyer is not approved");
         }
 
         Restaurant restaurant = restaurantDAO.findRestaurantById(requestDto.getVendor_id())
                 .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found"));
 
-        // TODO: Add checking for coupon id validation later
+        Coupon coupon = null;
 
+        if (requestDto.getCoupon_id() != null) {
+            coupon = couponDAO.findCouponById(requestDto.getCoupon_id()).orElseThrow(
+                    () -> new CouponServiceExceptions.CouponNotFound("Coupon Not Found")
+            );
+        }
+
+        if (coupon != null) {
+            if (LocalDate.now().isAfter(coupon.getEndDate())){
+                throw new CouponServiceExceptions.InvalidCoupon("This coupon has expired");
+            }
+            if (LocalDate.now().isBefore(coupon.getStartDate())){
+                throw new CouponServiceExceptions.InvalidCoupon("This coupon has not been activated");
+            }
+            if (coupon.getUserCount() <= 0){
+                throw new CouponServiceExceptions.InvalidCoupon("This coupon has no uses left");
+            }
+        }
 
         String address = requestDto.getDelivery_address();
         if (address == null || address.isBlank())
@@ -88,7 +104,31 @@ public class OrderService {
         BigDecimal additionalFee = BigDecimal.valueOf(restaurant.getAdditionalFee());
         BigDecimal totalPrice = rawPrice.add(taxFee).add(additionalFee);
 
+
         Order order = new Order();
+
+        if (coupon != null) {
+
+            if (rawPrice.compareTo(coupon.getMinPrice()) < 0) {
+                throw new CouponServiceExceptions.InvalidCoupon("Order price is lower than min coupon price");
+            }
+
+            if (coupon.getCouponType().equals(CouponType.FIXED)) {
+                totalPrice = totalPrice.subtract(coupon.getCouponValue());
+            }
+
+            if (coupon.getCouponType().equals(CouponType.PERCENT)) {
+                BigDecimal discountAmount = rawPrice.multiply(coupon.getCouponValue().divide(new BigDecimal("100")));
+                totalPrice = totalPrice.subtract(discountAmount);
+            }
+
+            order.setCoupon(coupon);
+            coupon.setUserCount(coupon.getUserCount() - 1);
+            couponDAO.update(coupon);
+
+        }
+
+
         order.setCustomer(customer);
         order.setRestaurant(restaurant);
         order.setDeliveryAddress(address);
@@ -126,7 +166,7 @@ public class OrderService {
         }
 
         if (!customer.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
-            throw new RestaurantServiceExceptions.SellerNotApproved("This is Buyer is not approved");
+            throw new UserNotApprovedException("This is Buyer is not approved");
         }
 
         ArrayList<OrderDto.OrderResponse> response = new ArrayList<>();
@@ -148,7 +188,7 @@ public class OrderService {
         }
 
         if (!customer.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
-            throw new RestaurantServiceExceptions.SellerNotApproved("This is Buyer is not approved");
+            throw new UserNotApprovedException("This is Buyer is not approved");
         }
 
         Order order = orderDAO.findOrderById(orderId).
@@ -174,7 +214,7 @@ public class OrderService {
         }
 
         if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
-            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
+            throw new UserNotFoundException("This seller is not approved");
         }
 
         Restaurant restaurant = restaurantDAO.findRestaurantById(restaurantId).orElseThrow(
@@ -206,7 +246,7 @@ public class OrderService {
         }
 
         if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
-            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
+            throw new UserNotApprovedException("This seller is not approved");
         }
 
         Restaurant restaurant = restaurantDAO.findRestaurantByOwner(owner).orElseThrow(
@@ -236,15 +276,21 @@ public class OrderService {
         response.setDelivery_address(order.getDeliveryAddress());
         response.setCustomer_id(order.getCustomer().getId());
         response.setVendor_id(order.getRestaurant().getId());
-        // TODO: set the coupon id
+        if (order.getCoupon() != null) {
+            response.setCoupon_id(order.getCoupon().getId());
+        }
         response.setRaw_price(order.getRawPrice());
         response.setTax_fee(order.getTaxFee());
         response.setAdditional_fee(order.getAdditionalFee());
-        // TODO: set the courier fee
+        response.setCourier_fee(order.getCourierFee());
         response.setPay_price(order.getTotalPrice());
         response.setStatus(order.getStatus().name());
         response.setCreated_at(order.getCreatedAt().toString());
         response.setUpdated_at(order.getUpdatedAt().toString());
+
+        if (order.getCourier() != null) {
+            response.setCourier_id(order.getCourier().getId());
+        }
 
 
         ArrayList<Long> itemIds = new ArrayList<>();

@@ -27,7 +27,9 @@
         @JoinColumn(name = "customer_id", nullable = false)
         private User customer;
 
-        // TODO: Add Coupon id later
+        @ManyToOne
+        @JoinColumn(name = "coupon_id")
+        private Coupon coupon;
 
         @ManyToOne(fetch = FetchType.LAZY)
         @JoinColumn(name = "restaurant_id", nullable = false)

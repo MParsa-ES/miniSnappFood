@@ -10,6 +10,7 @@ import entity.*;
 import lombok.AllArgsConstructor;
 import service.exception.MenuServiceExceptions;
 import service.exception.RestaurantServiceExceptions;
+import service.exception.UserNotApprovedException;
 import service.exception.UserNotFoundException;
 
 @AllArgsConstructor
@@ -38,7 +39,7 @@ public class MenuService {
         }
 
         if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
-            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
+            throw new UserNotApprovedException("This seller is not approved");
         }
 
         if (menuDAO.findMenuInRestaurant(request.getTitle(), restaurantId).isPresent()) {
@@ -76,7 +77,7 @@ public class MenuService {
         }
 
         if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
-            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
+            throw new UserNotApprovedException("This seller is not approved");
         }
 
 
@@ -109,7 +110,7 @@ public class MenuService {
         }
 
         if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
-            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
+            throw new UserNotApprovedException("This seller is not approved");
         }
 
         Menu menu = menuDAO.findMenuInRestaurant(menuTitle, restaurantId).orElseThrow(
@@ -149,7 +150,7 @@ public class MenuService {
         }
 
         if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
-            throw new RestaurantServiceExceptions.SellerNotApproved("This seller is not approved");
+            throw new UserNotApprovedException("This seller is not approved");
         }
 
         Menu menu = menuDAO.findMenuInRestaurant(menuTitle, restaurantId).orElseThrow(

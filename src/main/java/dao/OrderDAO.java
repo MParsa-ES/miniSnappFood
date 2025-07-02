@@ -35,6 +35,17 @@ public class OrderDAO {
         }
     }
 
+    public void save(Session session, Order order) {
+        try {
+            session.save(order);
+        } catch (Exception e) {
+            System.out.println("Error in saving order:" + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error in saving order:" + e.getMessage(), e);
+
+        }
+    }
+
     public List<Order> findHistoryByCustomer(Long customerId, String vendor, String search) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
 

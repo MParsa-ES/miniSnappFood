@@ -5,7 +5,10 @@ import dto.MessageDto;
 import dto.OrderDto;
 import entity.*;
 import lombok.AllArgsConstructor;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
 import service.exception.*;
+import util.HibernateUtil;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -29,6 +32,7 @@ public class OrderService {
             IllegalArgumentException, RestaurantServiceExceptions.ItemNotFound,
             CouponServiceExceptions.CouponNotFound, UserNotApprovedException,
             CouponServiceExceptions.InvalidCoupon {
+
         User customer = userDAO.findByPhone(customerUserPhone).
                 orElseThrow(() -> new UserNotFoundException("Buyer not found"));
 
@@ -105,28 +109,9 @@ public class OrderService {
         BigDecimal totalPrice = rawPrice.add(taxFee).add(additionalFee);
 
 
+
+
         Order order = new Order();
-
-        if (coupon != null) {
-
-            if (rawPrice.compareTo(coupon.getMinPrice()) < 0) {
-                throw new CouponServiceExceptions.InvalidCoupon("Order price is lower than min coupon price");
-            }
-
-            if (coupon.getCouponType().equals(CouponType.FIXED)) {
-                totalPrice = totalPrice.subtract(coupon.getCouponValue());
-            }
-
-            if (coupon.getCouponType().equals(CouponType.PERCENT)) {
-                BigDecimal discountAmount = rawPrice.multiply(coupon.getCouponValue().divide(new BigDecimal("100")));
-                totalPrice = totalPrice.subtract(discountAmount);
-            }
-
-            order.setCoupon(coupon);
-            coupon.setUserCount(coupon.getUserCount() - 1);
-            couponDAO.update(coupon);
-
-        }
 
 
         order.setCustomer(customer);
@@ -145,12 +130,59 @@ public class OrderService {
             order.getItems().add(item);
         }
 
-        orderDAO.save(order);
+        Transaction transaction = null;
+        Session session = null;
 
 
-        // updating the supply of each food item
-        for (FoodItem foodItem : foodItemsToUpdate) {
-            foodItemDAO.update(foodItem);
+        try {
+
+            session = HibernateUtil.getSessionFactory().openSession();
+            transaction = session.beginTransaction();
+
+            if (coupon != null) {
+
+                if (rawPrice.compareTo(coupon.getMinPrice()) < 0) {
+                    throw new CouponServiceExceptions.InvalidCoupon("Order price is lower than min coupon price");
+                }
+
+                if (coupon.getCouponType().equals(CouponType.FIXED)) {
+                    totalPrice = totalPrice.subtract(coupon.getCouponValue());
+                }
+
+                if (coupon.getCouponType().equals(CouponType.PERCENT)) {
+                    BigDecimal discountAmount = rawPrice.multiply(coupon.getCouponValue().divide(new BigDecimal("100")));
+                    totalPrice = totalPrice.subtract(discountAmount);
+                }
+
+                order.setTotalPrice(totalPrice);
+
+                order.setCoupon(coupon);
+                coupon.setUserCount(coupon.getUserCount() - 1);
+                couponDAO.update(session, coupon);
+
+            }
+
+            orderDAO.save(session, order);
+
+
+
+            // updating the supply of each food item
+            for (FoodItem foodItem : foodItemsToUpdate) {
+                foodItemDAO.update(session, foodItem);
+            }
+
+
+            transaction.commit();
+
+        } catch (Exception e) {
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            throw new RuntimeException("Error while saving order: " + e.getMessage(), e);
+        } finally {
+            if (session != null && session.isOpen()) {
+                session.close();
+            }
         }
 
         return mapOrderToResponseDto(order);

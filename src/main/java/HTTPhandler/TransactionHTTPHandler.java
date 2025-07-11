@@ -47,7 +47,7 @@ public class TransactionHTTPHandler implements HttpHandler {
             } else if (path.equals("/transactions") && "GET".equals(method)) {
                 handleUserTransactions(exchange);
             } else if (path.equals("/admin/transactions") && "GET".equals(method)) {
-
+                handleGetTransactions(exchange);
             }
         } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid input: " + e.getMessage())));
@@ -147,7 +147,7 @@ public class TransactionHTTPHandler implements HttpHandler {
 
         String search = null;
         String user = null;
-        String method = null;;
+        String method = null;
         String status = null;
 
 

@@ -119,6 +119,17 @@ public class CouponDAO {
         }
     }
 
+
+    public void update(Session session, Coupon coupon) {
+        try {
+            session.merge(coupon);
+        } catch (Exception e) {
+            System.err.println("Error while updating coupon: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error while updating coupon: " + e.getMessage(), e);
+        }
+    }
+
     public Optional<Coupon> findCouponByCouponCode(String couponCode) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Query<Coupon> query = session.createQuery("FROM Coupon c WHERE c.couponCode = :couponCode", Coupon.class);

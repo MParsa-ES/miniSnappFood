@@ -3,7 +3,6 @@ package dao;
 import dto.FoodItemDto;
 import entity.FoodItem;
 import entity.Restaurant;
-import entity.User;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
@@ -83,6 +82,18 @@ public class FoodItemDAO {
                 transaction.rollback();
             }
             throw new RuntimeException("Could not update foodItem");
+        }
+    }
+
+    public FoodItem update(Session session, FoodItem foodItem) {
+        try {
+            session.merge(foodItem);
+            return foodItem;
+        } catch (Exception e) {
+            System.err.println("Could not update foodItem");
+            e.printStackTrace();
+            throw new RuntimeException("Could not update foodItem");
+
         }
     }
 

@@ -109,13 +109,13 @@ public class AdminHTTPHandler implements HttpHandler {
 
     private void handleGetAllUsers(HttpExchange exchange) throws IOException {
 
-        String AdminPhoneNumebr = Utils.getAuthenticatedUserPhone(exchange);
+        String AdminPhoneNumber = Utils.getAuthenticatedUserPhone(exchange);
 
-        if (AdminPhoneNumebr == null) {
+        if (AdminPhoneNumber == null) {
             return;
         }
 
-        Utils.sendResponse(exchange, 200, gson.toJson(adminService.getUsersList(AdminPhoneNumebr)));
+        Utils.sendResponse(exchange, 200, gson.toJson(adminService.getUsersList(AdminPhoneNumber)));
     }
 
     private void handleUpdateApprovalStatus(HttpExchange exchange, Long userId) throws IOException {

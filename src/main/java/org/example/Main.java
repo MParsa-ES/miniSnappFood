@@ -21,6 +21,9 @@ public class Main {
         server.createContext("/coupons", new BuyerHTTPHandler());
         server.createContext("/orders", new OrderHTTPHandler());
         server.createContext("/ratings", new RatingHTTPHandler());
+        server.createContext("/payment", new TransactionHTTPHandler());
+        server.createContext("/wallet", new TransactionHTTPHandler());
+        server.createContext("/transactions", new TransactionHTTPHandler());
         server.createContext("/deliveries", new DeliveryHTTPHandler());
         server.createContext("/admin", new AdminHTTPHandler());
         server.start();

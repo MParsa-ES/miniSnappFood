@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -54,6 +55,8 @@ public class User {
     @Column(nullable = false)
     private ApprovalStatus approvalStatus;
 
+    @Column(name = "wallet_balance", nullable = false, precision = 12, scale = 2)
+    private BigDecimal walletBalance = BigDecimal.ZERO;
 
     public User(){}
 

@@ -9,6 +9,12 @@ public class UserRegisterDto {
 
     @Getter
     @Setter
+    public static class ValidateRequest {
+        String phone;
+    }
+
+    @Getter
+    @Setter
     public static class Request {
         private String full_name;
         private String phone;

@@ -7,14 +7,17 @@ import com.sun.net.httpserver.HttpHandler;
 import at.favre.lib.crypto.bcrypt.BCrypt;
 import dto.*;
 import entity.*;
+import jdk.jshell.execution.Util;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import service.exception.OrderServiceExceptions;
 import util.HibernateUtil;
 import util.JwtUtil;
 import util.RateLimiter;
 import util.Utils;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 
@@ -38,6 +41,7 @@ public class UserHTTPHandler implements HttpHandler {
             String path = exchange.getRequestURI().getPath();
 
             switch (path) {
+                case "/auth/validate" -> handleValidate(exchange);
                 case "/auth/register" -> handleRegister(exchange);
                 case "/auth/login" -> handleLogin(exchange);
                 case "/auth/logout" -> handleLogout(exchange);
@@ -46,6 +50,33 @@ public class UserHTTPHandler implements HttpHandler {
         } else {
             Utils.sendResponse(exchange, 405, "{\"error\":\"Method not allowed\"}");
         }
+    }
+
+    private void handleValidate(HttpExchange exchange) throws IOException {
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
+            return;
+        }
+
+        UserRegisterDto.ValidateRequest requestDTO;
+        try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+            requestDTO = gson.fromJson(reader, UserRegisterDto.ValidateRequest.class);
+
+            if (requestDTO == null) {
+                Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
+                return;
+            }
+        }
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            if (isPhoneTaken(session, requestDTO.getPhone())) {
+                Utils.sendResponse(exchange, 409, "{\"error\":\"Phone number already exists\"}");
+                return;
+            }
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson((new MessageDto("Phone number is valid"))));
+
     }
 
     private void handleRegister(HttpExchange exchange) throws IOException {

@@ -89,7 +89,8 @@ public class UserHTTPHandler implements HttpHandler {
 
         if (requestDto.getFull_name() == null || requestDto.getPhone() == null ||
                 requestDto.getPassword() == null || requestDto.getRole() == null ||
-                requestDto.getAddress() == null || (requestDto.getEmail() != null && !Utils.isValidEmail(requestDto.getEmail()))) {
+                (requestDto.getAddress() == null && !requestDto.getRole().equals("COURIER")) || (requestDto.getEmail() != null && !Utils.isValidEmail(requestDto.getEmail())) ||
+                (!requestDto.getRole().equals("BUYER") && (requestDto.getBank_info().getBank_name() == null || requestDto.getBank_info().getAccount_number() == null))) {
             Utils.sendResponse(exchange, 400, "{\n\"error\":\"Invalid field name\"\n}");
             return;
         }
@@ -119,10 +120,10 @@ public class UserHTTPHandler implements HttpHandler {
             // TODO check if the profileImage64 field address is invalid and return 404 not found code for it with "{\n\"error\":\"Resource not found\"\n}" message
 
             // Only sellers and buyers can have bank info
-            if (role == Role.BUYER && requestDto.getBank_info() != null) {
-                Utils.sendResponse(exchange, 403, "{\n\"error\":\"Forbidden request\"\n}");
-                return;
-            }
+//            if (role == Role.BUYER && requestDto.getBank_info() != null) {
+//                Utils.sendResponse(exchange, 403, "{\n\"error\":\"Forbidden request\"\n}");
+//                return;
+//            }
 
             User user = getUser(requestDto, role);
 

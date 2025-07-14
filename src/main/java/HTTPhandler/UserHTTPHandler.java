@@ -7,10 +7,8 @@ import com.sun.net.httpserver.HttpHandler;
 import at.favre.lib.crypto.bcrypt.BCrypt;
 import dto.*;
 import entity.*;
-import jdk.jshell.execution.Util;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
-import service.exception.OrderServiceExceptions;
 import util.HibernateUtil;
 import util.JwtUtil;
 import util.RateLimiter;
@@ -166,7 +164,7 @@ public class UserHTTPHandler implements HttpHandler {
                     .uniqueResult();
 
             if (user == null) {
-                Utils.sendResponse(exchange, 401, gson.toJson(gson.toJson(new ErrorResponseDto("Incorrect Phone or Password"))));
+                Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Incorrect Phone or Password")));
                 return;
             }
 
@@ -210,7 +208,7 @@ public class UserHTTPHandler implements HttpHandler {
             Utils.sendResponse(exchange, 200, gson.toJson(responseDto));
         } catch (Exception e) {
             e.printStackTrace();
-            Utils.sendResponse(exchange, 500, gson.toJson(gson.toJson(new ErrorResponseDto("Internal server error"))));
+            Utils.sendResponse(exchange, 500, gson.toJson(new ErrorResponseDto("Internal server error")));
         }
     }
 

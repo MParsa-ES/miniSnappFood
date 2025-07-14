@@ -68,7 +68,7 @@ public class UserHTTPHandler implements HttpHandler {
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             if (isPhoneTaken(session, requestDTO.getPhone())) {
-                Utils.sendResponse(exchange, 409, "{\"error\":\"Phone number already exists\"}");
+                Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto("Phone taken")));
                 return;
             }
         }
@@ -89,7 +89,7 @@ public class UserHTTPHandler implements HttpHandler {
                 requestDto.getPassword() == null || requestDto.getRole() == null ||
                 (requestDto.getAddress() == null && !requestDto.getRole().equals("COURIER")) || (requestDto.getEmail() != null && !Utils.isValidEmail(requestDto.getEmail())) ||
                 (!requestDto.getRole().equals("BUYER") && (requestDto.getBank_info().getBank_name() == null || requestDto.getBank_info().getAccount_number() == null))) {
-            Utils.sendResponse(exchange, 400, "{\n\"error\":\"Invalid field name\"\n}");
+            Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
             return;
         }
 
@@ -118,10 +118,10 @@ public class UserHTTPHandler implements HttpHandler {
             // TODO check if the profileImage64 field address is invalid and return 404 not found code for it with "{\n\"error\":\"Resource not found\"\n}" message
 
             // Only sellers and buyers can have bank info
-            if (role == Role.BUYER && requestDto.getBank_info() != null) {
-                Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto("Buyer doesn't have bank info")));
-                return;
-            }
+//            if (role == Role.BUYER && requestDto.getBank_info() != null) {
+//                Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto("Buyer doesn't have bank info")));
+//                return;
+//            }
 
             User user = getUser(requestDto, role);
 

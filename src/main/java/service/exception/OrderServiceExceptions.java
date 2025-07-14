@@ -40,6 +40,10 @@ public class OrderServiceExceptions extends RuntimeException {
         public OrderNotCompleted(String message) {}
     }
 
+    public static class InvalidOrderState extends RuntimeException {
+        public InvalidOrderState(String message) {}
+    }
+
     public static class RatingAlreadyExists extends RuntimeException {
         public RatingAlreadyExists(String message) {}
     }

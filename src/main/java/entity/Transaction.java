@@ -34,12 +34,18 @@ public class Transaction {
     @Column(nullable = false)
     private TransactionStatus status;
 
-    // Extra
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal amount;
-
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public Transaction() {}
+
+    public Transaction(User user, Order order, TransactionMethod method, TransactionStatus status) {
+        this.user = user;
+        this.order = order;
+        this.method = method;
+        this.status = status;
+        this.createdAt = LocalDateTime.now();
+    }
 
 }

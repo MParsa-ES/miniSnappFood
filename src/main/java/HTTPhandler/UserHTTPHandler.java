@@ -166,7 +166,7 @@ public class UserHTTPHandler implements HttpHandler {
                     .uniqueResult();
 
             if (user == null) {
-                Utils.sendResponse(exchange, 401, gson.toJson("{\n\"error\":\"Unauthorized request\"\n}"));
+                Utils.sendResponse(exchange, 401, "{\n\"error\":\"Unauthorized request\"\n}");
                 return;
             }
 

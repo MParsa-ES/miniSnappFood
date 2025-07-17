@@ -7,10 +7,8 @@ import com.sun.net.httpserver.HttpHandler;
 import at.favre.lib.crypto.bcrypt.BCrypt;
 import dto.*;
 import entity.*;
-import jdk.jshell.execution.Util;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
-import service.exception.OrderServiceExceptions;
 import util.HibernateUtil;
 import util.JwtUtil;
 import util.RateLimiter;
@@ -32,7 +30,7 @@ public class UserHTTPHandler implements HttpHandler {
         // Checking for Bot
         String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
         if (!RateLimiter.isAllowed(ip)) {
-            Utils.sendResponse(exchange, 429, "{\n\"error\":\"Too many requests\"\n}");
+            Utils.sendResponse(exchange, 429, gson.toJson(new ErrorResponseDto("Too many requests!")));
             return;
         }
 
@@ -45,10 +43,10 @@ public class UserHTTPHandler implements HttpHandler {
                 case "/auth/register" -> handleRegister(exchange);
                 case "/auth/login" -> handleLogin(exchange);
                 case "/auth/logout" -> handleLogout(exchange);
-                default -> Utils.sendResponse(exchange, 404, "{\"error\":\"Not found\"}");
+                default -> Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Page Not Found")));
             }
         } else {
-            Utils.sendResponse(exchange, 405, "{\"error\":\"Method not allowed\"}");
+            Utils.sendResponse(exchange, 405, gson.toJson("Method not supported"));
         }
     }
 
@@ -70,7 +68,7 @@ public class UserHTTPHandler implements HttpHandler {
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             if (isPhoneTaken(session, requestDTO.getPhone())) {
-                Utils.sendResponse(exchange, 409, "{\"error\":\"Phone number already exists\"}");
+                Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto("Phone taken")));
                 return;
             }
         }
@@ -91,7 +89,7 @@ public class UserHTTPHandler implements HttpHandler {
                 requestDto.getPassword() == null || requestDto.getRole() == null ||
                 (requestDto.getAddress() == null && !requestDto.getRole().equals("COURIER")) || (requestDto.getEmail() != null && !Utils.isValidEmail(requestDto.getEmail())) ||
                 (!requestDto.getRole().equals("BUYER") && (requestDto.getBank_info().getBank_name() == null || requestDto.getBank_info().getAccount_number() == null))) {
-            Utils.sendResponse(exchange, 400, "{\n\"error\":\"Invalid field name\"\n}");
+            Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
             return;
         }
 
@@ -104,14 +102,14 @@ public class UserHTTPHandler implements HttpHandler {
             }
 
         } catch (IllegalArgumentException e) {
-            Utils.sendResponse(exchange, 400, "{\n\"error\":\"Invalid field name\"\n}");
+            Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid role")));
             return;
         }
 
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             if (isPhoneTaken(session, requestDto.getPhone())) {
-                Utils.sendResponse(exchange, 409, "{\"error\":\"Phone number already exists\"}");
+                Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto("Phone taken")));
                 return;
             }
 
@@ -121,7 +119,7 @@ public class UserHTTPHandler implements HttpHandler {
 
             // Only sellers and buyers can have bank info
 //            if (role == Role.BUYER && requestDto.getBank_info() != null) {
-//                Utils.sendResponse(exchange, 403, "{\n\"error\":\"Forbidden request\"\n}");
+//                Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto("Buyer doesn't have bank info")));
 //                return;
 //            }
 
@@ -144,7 +142,7 @@ public class UserHTTPHandler implements HttpHandler {
         } catch (Throwable e) {
             System.err.println("Something went wrong");
             e.printStackTrace();
-            Utils.sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}");
+            Utils.sendResponse(exchange, 500, gson.toJson(new ErrorResponseDto("Internal Server Error")));
         }
     }
 
@@ -157,7 +155,7 @@ public class UserHTTPHandler implements HttpHandler {
         UserLoginDto.Request requestDto = new Gson().fromJson(reader, UserLoginDto.Request.class);
 
         if (requestDto.getPhone() == null || requestDto.getPassword() == null) {
-            Utils.sendResponse(exchange, 400, "{\n\"error\":\"Invalid `field name`\"\n}");
+            Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid Phone or Password")));
         }
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
@@ -166,7 +164,7 @@ public class UserHTTPHandler implements HttpHandler {
                     .uniqueResult();
 
             if (user == null) {
-                Utils.sendResponse(exchange, 401, "{\n\"error\":\"Unauthorized request\"\n}");
+                Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Incorrect Phone or Password")));
                 return;
             }
 
@@ -175,7 +173,7 @@ public class UserHTTPHandler implements HttpHandler {
             BCrypt.Result result = BCrypt.verifyer().verify(rawPassword.toCharArray(), hashedPasswordFromDb);
 
             if (!result.verified) {
-                Utils.sendResponse(exchange, 401, gson.toJson("{\n\"error\":\"Unauthorized request\"\n}"));
+                Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Incorrect Phone or Password")));
                 return;
             }
 
@@ -210,7 +208,7 @@ public class UserHTTPHandler implements HttpHandler {
             Utils.sendResponse(exchange, 200, gson.toJson(responseDto));
         } catch (Exception e) {
             e.printStackTrace();
-            Utils.sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}");
+            Utils.sendResponse(exchange, 500, gson.toJson(new ErrorResponseDto("Internal server error")));
         }
     }
 
@@ -220,13 +218,13 @@ public class UserHTTPHandler implements HttpHandler {
 
         // Check if token exists
         if (token == null || token.isEmpty()) {
-            Utils.sendResponse(exchange, 401, gson.toJson("{\n\"error\":\"Unauthorized request\"\n}"));
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Invalid token")));
             return;
         }
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             if (JwtUtil.validateToken(token) == null) {
-                Utils.sendResponse(exchange, 401, gson.toJson("{\n\"error\":\"Unauthorized request\"\n}"));
+                Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Invalid token")));
                 return;
             }
 
@@ -240,11 +238,11 @@ public class UserHTTPHandler implements HttpHandler {
                 transaction.commit();
             }
 
-            Utils.sendResponse(exchange, 200, "{\"message\":\"User Logged out successfully\"}");
+            Utils.sendResponse(exchange, 200, gson.toJson(new MessageDto("User logged out successfully")) );
 
         } catch (Exception e) {
             e.printStackTrace();
-            Utils.sendResponse(exchange, 500, "{\"error\":\"Internal server error\"}");
+            Utils.sendResponse(exchange, 500, gson.toJson(new ErrorResponseDto("Internal server error")));
         }
     }
 

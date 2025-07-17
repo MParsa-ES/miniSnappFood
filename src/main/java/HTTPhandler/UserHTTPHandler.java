@@ -95,7 +95,7 @@ public class UserHTTPHandler implements HttpHandler {
             return;
         }
 
-        Role role;
+        Role role = null;
         try {
             role = Role.valueOf(requestDto.getRole().toUpperCase());
             if (role.equals(Role.ADMIN)) {

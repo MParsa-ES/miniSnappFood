@@ -43,7 +43,9 @@ public class BuyerHTTPHandler implements HttpHandler {
         String method = exchange.getRequestMethod();
 
         try {
-            if (path.equals("/vendors") && "POST".equals(method)) {
+            if (path.equals("/vendors/all") && method.equals("GET")) {
+                handleAllRestaurants(exchange);
+            }else if (path.equals("/vendors") && "POST".equals(method)) {
                 handleVendorsSearch(exchange);
             } else if (path.matches("/vendors/\\d+") && "GET".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
@@ -83,6 +85,13 @@ public class BuyerHTTPHandler implements HttpHandler {
             e.printStackTrace();
             Utils.sendResponse(exchange, 500, gson.toJson(new ErrorResponseDto("Internal server error.")));
         }
+    }
+
+    private void handleAllRestaurants(HttpExchange exchange) throws IOException, java.io.IOException {
+
+        List<RestaurantDto.Response> list = buyerService.getAllRestaurants();
+        Utils.sendResponse(exchange, 200, gson.toJson(list));
+
     }
 
     private void handleVendorsSearch(HttpExchange exchange) throws java.io.IOException {

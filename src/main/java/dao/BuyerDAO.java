@@ -170,4 +170,14 @@ public class BuyerDAO {
         }
     }
 
+    public List<Restaurant> getAllRestaurants() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<Restaurant> query = session.createQuery("FROM Restaurant", Restaurant.class);
+            return query.getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return List.of();
+        }
+    }
+
 }

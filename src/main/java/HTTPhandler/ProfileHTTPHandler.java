@@ -31,23 +31,18 @@ public class ProfileHTTPHandler implements HttpHandler {
 
         String token = exchange.getRequestHeaders().getFirst("Authorization");
 
-        String phone = Utils.getAuthenticatedUserPhone(exchange);
-        if (phone == null){
-            return;
-        }
-
 
         if ("GET".equals(exchange.getRequestMethod())) {
             String path = exchange.getRequestURI().getPath();
             if (path.equals("/auth/profile")) {
-                handleGetProfile(exchange, phone);
+                handleGetProfile(exchange);
             } else {
                 Utils.sendResponse(exchange, 404, "{\n\"error\":\"Resource not found\"\n}"); // Not Found
             }
         } else if ("PUT".equals(exchange.getRequestMethod())) {
             String path = exchange.getRequestURI().getPath();
             if (path.matches("/auth/profile")) {
-                handleUpdateProfile(exchange, phone);
+                handleUpdateProfile(exchange);
             } else {
                 Utils.sendResponse(exchange, 404, "{\n\"error\":\"Resource not found\"\n}"); // Not Found
             }
@@ -56,8 +51,9 @@ public class ProfileHTTPHandler implements HttpHandler {
         }
     }
 
-    private void handleGetProfile(HttpExchange exchange, String phone) throws IOException {
+    private void handleGetProfile(HttpExchange exchange) throws IOException {
         // Fetch user and profile
+        String phone = Utils.getAuthenticatedUserPhone(exchange);
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             User user = Utils.getUserByPhone(session, phone);
             if (user == null || user.getProfile() == null) {
@@ -97,11 +93,12 @@ public class ProfileHTTPHandler implements HttpHandler {
         }
     }
 
-    private void handleUpdateProfile(HttpExchange exchange, String phone) throws IOException {
+    private void handleUpdateProfile(HttpExchange exchange) throws IOException {
 
         // Checking correct Header for content type
         if (Utils.checkUnathorizedMediaType(exchange)) return;
 
+        String phone = Utils.getAuthenticatedUserPhone(exchange);
         InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8);
         ProfileDto updatedProfile = gson.fromJson(reader, ProfileDto.class);
 
@@ -114,8 +111,8 @@ public class ProfileHTTPHandler implements HttpHandler {
                 return;
             }
             if (updatedProfile.getPhone() != null) {
-                if (Utils.getUserByPhone(session, updatedProfile.getPhone()) != null) {
-                    Utils.sendResponse(exchange, 403, "{\n\"error\":\"Forbidden request\"\n}"); // Forbidden
+                if (Utils.getUserByPhone(session, updatedProfile.getPhone()) != null && !user.getPhone().equals(updatedProfile.getPhone())) {
+                    Utils.sendResponse(exchange, 403, "{\n\"error\":\"Phone already in use\"\n}"); // Forbidden
                     return;
                 }
                 // setting the new phone number
@@ -123,11 +120,9 @@ public class ProfileHTTPHandler implements HttpHandler {
             }
 
             if (updatedProfile.getFull_name() != null) user.setFullName(updatedProfile.getFull_name());
-            if (updatedProfile.getEmail() != null) {
+            if (updatedProfile.getEmail() != null && !updatedProfile.getEmail().isEmpty()) {
                 if (Utils.isValidEmail(updatedProfile.getEmail())) {
                     user.setEmail(updatedProfile.getEmail());
-                } else {
-                    Utils.sendResponse(exchange, 403, "{\n\"error\":\"Invalid field name\"\n}");
                 }
             }
 

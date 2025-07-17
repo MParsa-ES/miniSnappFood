@@ -23,6 +23,25 @@ public class BuyerService {
         this.couponDAO = couponDAO;
     }
 
+    public List<RestaurantDto.Response> getAllRestaurants() throws RuntimeException {
+
+        List<Restaurant> restaurants = buyerDAO.getAllRestaurants();
+        List<RestaurantDto.Response> responses = new ArrayList<>();
+        for (Restaurant restaurant : restaurants) {
+            responses.add(new RestaurantDto.Response(
+                    restaurant.getId(),
+                    restaurant.getName(),
+                    restaurant.getAddress(),
+                    restaurant.getPhone(),
+                    restaurant.getLogo(),
+                    restaurant.getTaxFee(),
+                    restaurant.getAdditionalFee()
+            ));
+        }
+        return responses;
+
+    }
+
     public List<RestaurantDto.Response> GetVendorsList(String search, List<String> keywords) throws RestaurantServiceExceptions {
 
         List<Restaurant> restaurants = buyerDAO.SearchVendors(search, keywords);

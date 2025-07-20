@@ -53,18 +53,15 @@ public class BuyerDAO {
             }
 
             if (!itemConditions.isEmpty()) {
-                // تمام شروط آیتم‌ها را با AND ترکیب کرده و در یک EXISTS قرار می‌دهیم
                 mainOrConditions.add("EXISTS (SELECT 1 FROM FoodItem fi WHERE fi.restaurant = r AND " + String.join(" AND ", itemConditions) + ")");
             }
 
-            // --- ساخت کوئری نهایی ---
             if (!mainOrConditions.isEmpty()) {
                 hql.append(" WHERE ").append(String.join(" OR ", mainOrConditions));
             }
 
             Query<Restaurant> query = session.createQuery(hql.toString(), Restaurant.class);
 
-            // مقداردهی پارامترها
             for (Map.Entry<String, Object> entry : params.entrySet()) {
                 if (entry.getValue() instanceof Collection) {
                     query.setParameterList(entry.getKey(), (Collection<?>) entry.getValue());

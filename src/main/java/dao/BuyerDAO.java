@@ -21,6 +21,66 @@ import java.util.*;
 
 public class BuyerDAO {
 
+    public List<Restaurant> searchVendorsByItemFilters(String searchTerm, Integer minPrice, Integer maxPrice, List<String> keywords) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+
+            StringBuilder hql = new StringBuilder("SELECT DISTINCT r FROM Restaurant r ");
+
+            List<String> mainOrConditions = new ArrayList<>();
+            Map<String, Object> params = new HashMap<>();
+
+            if (searchTerm != null && !searchTerm.isBlank()) {
+                mainOrConditions.add("(r.name LIKE :searchTerm OR r.address LIKE :searchTerm)");
+                params.put("searchTerm", "%" + searchTerm + "%");
+            }
+
+            List<String> itemConditions = new ArrayList<>();
+
+            if (searchTerm != null && !searchTerm.isBlank()) {
+                itemConditions.add("(fi.name LIKE :searchTerm OR fi.description LIKE :searchTerm)");
+            }
+            if (minPrice != null && minPrice > 0) {
+                itemConditions.add("fi.price >= :minPrice");
+                params.put("minPrice", minPrice);
+            }
+            if (maxPrice != null && maxPrice > 0) {
+                itemConditions.add("fi.price <= :maxPrice");
+                params.put("maxPrice", maxPrice);
+            }
+            if (keywords != null && !keywords.isEmpty()) {
+                itemConditions.add("EXISTS (SELECT 1 FROM fi.keywords k WHERE k IN (:keywords))");
+                params.put("keywords", keywords);
+            }
+
+            if (!itemConditions.isEmpty()) {
+                // تمام شروط آیتم‌ها را با AND ترکیب کرده و در یک EXISTS قرار می‌دهیم
+                mainOrConditions.add("EXISTS (SELECT 1 FROM FoodItem fi WHERE fi.restaurant = r AND " + String.join(" AND ", itemConditions) + ")");
+            }
+
+            // --- ساخت کوئری نهایی ---
+            if (!mainOrConditions.isEmpty()) {
+                hql.append(" WHERE ").append(String.join(" OR ", mainOrConditions));
+            }
+
+            Query<Restaurant> query = session.createQuery(hql.toString(), Restaurant.class);
+
+            // مقداردهی پارامترها
+            for (Map.Entry<String, Object> entry : params.entrySet()) {
+                if (entry.getValue() instanceof Collection) {
+                    query.setParameterList(entry.getKey(), (Collection<?>) entry.getValue());
+                } else {
+                    query.setParameter(entry.getKey(), entry.getValue());
+                }
+            }
+
+            return query.getResultList();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error during comprehensive search: " + e.getMessage(), e);
+        }
+    }
+
     public List<Restaurant> SearchVendors(String searchTerm, List<String> keywords) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             StringBuilder hql = new StringBuilder("SELECT DISTINCT r FROM Restaurant r ");

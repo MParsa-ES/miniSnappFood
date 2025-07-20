@@ -79,7 +79,7 @@ public class RestaurantService {
         }
 
         if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
-            throw new UserNotApprovedException("This seller is not approved");
+            throw new UserNotApprovedException("You are not approved yet");
         }
 
         Restaurant ownerRestaurant = null;

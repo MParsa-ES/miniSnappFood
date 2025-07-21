@@ -9,6 +9,7 @@ import org.hibernate.query.Query;
 import service.exception.RestaurantServiceExceptions;
 import util.HibernateUtil;
 
+import java.util.List;
 import java.util.Optional;
 
 public class FoodItemDAO {
@@ -108,6 +109,18 @@ public class FoodItemDAO {
                 transaction.rollback();
             }
             throw new RuntimeException("Could not delete foodItem");
+        }
+    }
+
+    public  List<FoodItem> findAll(Long restaurantId) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<FoodItem> query = session.createQuery("FROM FoodItem f LEFT JOIN FETCH f.keywords WHERE f.restaurant.id = :restaurantId", FoodItem.class);
+            query.setParameter("restaurantId", restaurantId);
+            return query.list();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Error finding all food items");
+            return List.of();
         }
     }
 

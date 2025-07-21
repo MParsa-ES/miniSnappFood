@@ -12,6 +12,7 @@ import service.exception.UserNotApprovedException;
 import service.exception.UserNotFoundException;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 
 public class FoodItemService {
     private final UserDAO userDAO;
@@ -95,7 +96,7 @@ public class FoodItemService {
         Restaurant currentRestaurant = restaurantDAO.findRestaurantById(restaurantId)
                 .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found"));
 
-        FoodItem currentFoodItem = foodItemDAO.findFoodItemById(itemId, restaurantId)
+        FoodItem currentFoodItem = foodItemDAO.findFoodItemById(restaurantId, itemId)
                 .orElseThrow(() -> new RestaurantServiceExceptions.ItemNotFound("Item not Found"));
 
         if (!currentRestaurant.getOwner().equals(owner)) {
@@ -132,13 +133,48 @@ public class FoodItemService {
         Restaurant restaurant = restaurantDAO.findRestaurantById(restaurantId)
                 .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found"));
 
-        FoodItem foodItem = foodItemDAO.findFoodItemById(itemId, restaurantId)
+        FoodItem foodItem = foodItemDAO.findFoodItemById(restaurantId, itemId)
                 .orElseThrow(() -> new RestaurantServiceExceptions.ItemNotFound("Item not Found"));
 
         foodItemDAO.delete(foodItem);
 
         return new MessageDto("Item deleted successfully");
 
+    }
+
+    public ArrayList<FoodItemDto.Response> GetAllFoodItems(String ownerUserPhone,Long restaurantId) {
+
+        User owner = userDAO.findByPhone(ownerUserPhone)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (owner.getRole() != Role.SELLER) {
+            throw new RestaurantServiceExceptions.UserNotSeller("User is not seller");
+        }
+
+        if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {
+            throw new UserNotApprovedException("This seller is not approved");
+        }
+
+        ArrayList<FoodItemDto.Response> foodItems = new ArrayList<>();
+
+        for (FoodItem food : foodItemDAO.findAll(restaurantId)) {
+            foodItems.add(mapToFoodItemsDto(food));
+        }
+
+        return foodItems;
+
+    }
+
+    private FoodItemDto.Response mapToFoodItemsDto(FoodItem foodItem) {
+        FoodItemDto.Response response = new FoodItemDto.Response();
+        response.setId(foodItem.getId());
+        response.setName(foodItem.getName());
+        response.setImageBase64(foodItem.getImageBase64());
+        response.setDescription(foodItem.getDescription());
+        response.setPrice(foodItem.getPrice());
+        response.setSupply(foodItem.getSupply());
+        response.setKeywords(foodItem.getKeywords());
+        return response;
     }
 
 }

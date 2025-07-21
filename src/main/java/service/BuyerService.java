@@ -11,14 +11,14 @@ import java.util.*;
 public class BuyerService {
     private final UserDAO userDAO;
     private final RestaurantDAO restaurantDAO;
-    private final FoodItemDAO foodItemDAO;
+    private final MenuDAO menuDAO;
     private final BuyerDAO buyerDAO;
     private final CouponDAO couponDAO;
 
-    public BuyerService(UserDAO userDAO, RestaurantDAO restaurantDAO, FoodItemDAO foodItemDAO, BuyerDAO buyerDAO, CouponDAO couponDAO) {
+    public BuyerService(UserDAO userDAO, RestaurantDAO restaurantDAO, MenuDAO menuDAO, BuyerDAO buyerDAO, CouponDAO couponDAO) {
         this.userDAO = userDAO;
         this.restaurantDAO = restaurantDAO;
-        this.foodItemDAO = foodItemDAO;
+        this.menuDAO = menuDAO;
         this.buyerDAO = buyerDAO;
         this.couponDAO = couponDAO;
     }
@@ -217,6 +217,49 @@ public class BuyerService {
         user.removeFavoriteRestaurant(restaurant);
         userDAO.update(user);
         return new MessageDto("Restaurant removed from favourites successfully ");
+
+    }
+
+    public List<MenuDto.Response> getRestaurantMenus(Long restaurantId) throws RestaurantServiceExceptions, MenuServiceExceptions {
+
+        Restaurant restaurant = restaurantDAO.findRestaurantById(restaurantId)
+                .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found"));
+
+        List<MenuDto.Response> responses = new ArrayList<>();
+
+        for (Menu menu: restaurant.getMenus()) {
+            responses.add(new MenuDto.Response(
+                    menu.getId(),
+                    menu.getTitle()
+            ));
+        }
+
+        return responses;
+
+    }
+
+    public List<FoodItemDto.Response> getMenuItems(Long menuId) throws RestaurantServiceExceptions, MenuServiceExceptions {
+
+        Menu menu = menuDAO.getMenuItems(menuId)
+                .orElseThrow(() -> new MenuServiceExceptions.MenuNotFoundException("Menu not found"));
+
+        Restaurant restaurant = menu.getRestaurant();
+        List<FoodItemDto.Response> responses = new ArrayList<>();
+
+        for (FoodItem foodItem: menu.getFoodItems()) {
+            responses.add(new FoodItemDto.Response(
+                    foodItem.getId(),
+                    foodItem.getName(),
+                    foodItem.getImageBase64(),
+                    foodItem.getDescription(),
+                    restaurant.getId(),
+                    foodItem.getPrice(),
+                    foodItem.getSupply(),
+                    foodItem.getKeywords()
+            ));
+        }
+
+        return responses;
 
     }
 

@@ -26,7 +26,29 @@ public class BuyerService {
     public List<RestaurantDto.Response> getAllRestaurants() throws RuntimeException {
 
         List<Restaurant> restaurants = buyerDAO.getAllRestaurants();
+
         List<RestaurantDto.Response> responses = new ArrayList<>();
+        for (Restaurant restaurant : restaurants) {
+            responses.add(new RestaurantDto.Response(
+                    restaurant.getId(),
+                    restaurant.getName(),
+                    restaurant.getAddress(),
+                    restaurant.getPhone(),
+                    restaurant.getLogo(),
+                    restaurant.getTaxFee(),
+                    restaurant.getAdditionalFee()
+            ));
+        }
+        return responses;
+
+    }
+
+    public List<RestaurantDto.Response> searchVendors(BuyerDto.ItemSearch requestDto) throws RuntimeException {
+
+        List<Restaurant> restaurants = buyerDAO.searchVendorsByItemFilters(requestDto.getSearch(), requestDto.getMinPrice(), requestDto.getMaxPrice(), requestDto.getKeywords());
+
+        List<RestaurantDto.Response> responses = new ArrayList<>();
+
         for (Restaurant restaurant : restaurants) {
             responses.add(new RestaurantDto.Response(
                     restaurant.getId(),

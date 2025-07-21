@@ -41,7 +41,8 @@ public class BuyerDto {
     @AllArgsConstructor
     public static class ItemSearch {
         private String search;
-        private int price;
+        private int minPrice;
+        private int maxPrice;
         private List<String> keywords;
     }
 

@@ -45,7 +45,9 @@ public class BuyerHTTPHandler implements HttpHandler {
         try {
             if (path.equals("/vendors/all") && method.equals("GET")) {
                 handleAllRestaurants(exchange);
-            }else if (path.equals("/vendors") && "POST".equals(method)) {
+            } else if (path.equals("/vendors/search") && method.equals("POST")) {
+                handleSearchVendors(exchange);
+            } else if (path.equals("/vendors") && "POST".equals(method)) {
                 handleVendorsSearch(exchange);
             } else if (path.matches("/vendors/\\d+") && "GET".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
@@ -90,6 +92,27 @@ public class BuyerHTTPHandler implements HttpHandler {
     private void handleAllRestaurants(HttpExchange exchange) throws IOException, java.io.IOException {
 
         List<RestaurantDto.Response> list = buyerService.getAllRestaurants();
+        Utils.sendResponse(exchange, 200, gson.toJson(list));
+
+    }
+
+    private void handleSearchVendors(HttpExchange exchange) throws IOException, java.io.IOException {
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
+            return;
+        }
+
+        BuyerDto.ItemSearch requestDto;
+        try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+            requestDto = gson.fromJson(reader, BuyerDto.ItemSearch.class);
+
+            if (requestDto == null) {
+                Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid field name")));
+                return;
+            }
+        }
+
+        List<RestaurantDto.Response> list = buyerService.searchVendors(requestDto);
         Utils.sendResponse(exchange, 200, gson.toJson(list));
 
     }
@@ -147,7 +170,7 @@ public class BuyerHTTPHandler implements HttpHandler {
             }
         }
 
-        List<FoodItemDto.Response> list = buyerService.GetItemsList(requestDto.getSearch(), requestDto.getPrice() ,requestDto.getKeywords());
+        List<FoodItemDto.Response> list = buyerService.GetItemsList(requestDto.getSearch(), requestDto.getMinPrice() ,requestDto.getKeywords());
         Utils.sendResponse(exchange, 200, gson.toJson(list));
     }
 

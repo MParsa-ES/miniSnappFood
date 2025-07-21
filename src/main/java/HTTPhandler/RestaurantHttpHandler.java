@@ -65,7 +65,7 @@ public class RestaurantHttpHandler implements HttpHandler {
                 handleAddItem(exchange);
 
 
-            } else if (path.matches("/restaurants/\\d+/item/\\d+") && "GET".equals(method)) {
+            } else if (path.matches("/restaurants/\\d+/item/\\d+") && "PUT".equals(method)) {
                 Long restaurantId = Long.parseLong(path.split("/")[2]);
                 Long itemId = Long.parseLong(path.split("/")[4]);
                 handleUpdateItem(exchange, restaurantId, itemId);
@@ -110,8 +110,13 @@ public class RestaurantHttpHandler implements HttpHandler {
                 handleUpdateOrderStatus(exchange, orderId);
 
 
+            } else if (path.matches("^/restaurants/\\d+/items$") && "GET".equals(method)) {
+                Long restaurantId = Long.parseLong(path.split("/")[2]);
+                handleGetRestaurantFoods(exchange, restaurantId);
+
+                
             } else {
-                Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Resource not found")));
+                Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Endpoint not found")));
             }
         } catch (UserNotFoundException | RestaurantServiceExceptions.RestaurantNotFound |
                  MenuServiceExceptions.MenuNotFoundException | RestaurantServiceExceptions.ItemNotFound |
@@ -240,7 +245,7 @@ public class RestaurantHttpHandler implements HttpHandler {
         }
 
         FoodItemDto.Response responseDto = foodItemService.createFoodItem(requestDto, ownerUserPhone);
-        Utils.sendResponse(exchange, 201, gson.toJson(responseDto));
+        Utils.sendResponse(exchange, 200, gson.toJson(responseDto));
     }
 
     private void handleUpdateItem(HttpExchange exchange, Long restaurantId, Long itemId) throws IOException {
@@ -414,6 +419,15 @@ public class RestaurantHttpHandler implements HttpHandler {
         }
 
         Utils.sendResponse(exchange, 200, gson.toJson(orderService.updateOrderStatus(requestDto, ownerUserPhone, orderId)));
+    }
+    
+    private void handleGetRestaurantFoods(HttpExchange exchange, Long restaurantId) throws IOException {
+        String ownerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (ownerUserPhone == null) {
+            return;
+        }
+        
+        Utils.sendResponse(exchange, 200, gson.toJson(foodItemService.GetAllFoodItems(ownerUserPhone, restaurantId)));
     }
 
 }

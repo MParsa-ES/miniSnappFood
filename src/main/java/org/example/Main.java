@@ -16,6 +16,7 @@ public class Main {
         server.createContext("/auth/profile", new ProfileHTTPHandler());
         server.createContext("/restaurants", new RestaurantHttpHandler());
         server.createContext("/vendors", new BuyerHTTPHandler());
+        server.createContext("/menus", new BuyerHTTPHandler());
         server.createContext("/items", new BuyerHTTPHandler());
         server.createContext("/favorites", new BuyerHTTPHandler());
         server.createContext("/coupons", new BuyerHTTPHandler());

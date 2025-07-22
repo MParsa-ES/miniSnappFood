@@ -23,6 +23,7 @@ public class MenuDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Response {
+        private Long id;
         private String title;
     }
 

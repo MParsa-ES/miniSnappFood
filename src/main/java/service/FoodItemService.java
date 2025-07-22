@@ -70,6 +70,7 @@ public class FoodItemService {
                 restaurant.getId(),
                 savedFood.getPrice(),
                 savedFood.getSupply(),
+                savedFood.getAverageRating(),
                 savedFood.getKeywords()
         );
 

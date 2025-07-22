@@ -1,12 +1,17 @@
 package dao;
 
+import dto.FoodItemDto;
+import entity.FoodItem;
 import entity.Menu;
 import org.hibernate.Hibernate;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
+import service.exception.MenuServiceExceptions;
+import service.exception.RestaurantServiceExceptions;
 import util.HibernateUtil;
 
+import java.util.List;
 import java.util.Optional;
 
 public class MenuDAO {
@@ -38,6 +43,16 @@ public class MenuDAO {
             return menu;
         } catch (Exception e) {
             throw new RuntimeException("Error while checking for menu with title :" + title + e.getMessage(), e);
+        }
+    }
+
+    public Optional<Menu> getMenuItems(Long menuId) throws RestaurantServiceExceptions, MenuServiceExceptions {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<Menu> query = session.createQuery("from Menu m LEFT JOIN FETCH m.foodItems LEFT JOIN FETCH m.restaurant where m.id=:menuId", Menu.class);
+            query.setParameter("menuId", menuId);
+            return Optional.ofNullable(query.uniqueResult());
+        } catch (Exception e) {
+            throw new RuntimeException("Error while checking for menu with id :" + menuId + e.getMessage(), e);
         }
     }
 

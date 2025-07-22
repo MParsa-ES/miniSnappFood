@@ -19,6 +19,7 @@ import util.Utils;
 
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -28,7 +29,7 @@ public class BuyerHTTPHandler implements HttpHandler {
     private final BuyerService buyerService;
 
     public BuyerHTTPHandler() {
-        this.buyerService = new BuyerService(new UserDAO(), new RestaurantDAO(), new FoodItemDAO(), new BuyerDAO(), new CouponDAO());
+        this.buyerService = new BuyerService(new UserDAO(), new RestaurantDAO(), new MenuDAO(), new BuyerDAO(), new CouponDAO());
     }
 
     @Override
@@ -47,6 +48,12 @@ public class BuyerHTTPHandler implements HttpHandler {
                 handleAllRestaurants(exchange);
             } else if (path.equals("/vendors/search") && method.equals("POST")) {
                 handleSearchVendors(exchange);
+            } else if (path.matches("/vendors/menus/\\d+") && method.equals("GET")) {
+                Long id = Long.parseLong(path.split("/")[3]);
+                handleVendorsMenus(exchange, id);
+            } else if (path.matches("/menus/\\d+/items") && method.equals("GET")) {
+                Long id = Long.parseLong(path.split("/")[2]);
+                handleMenuItems(exchange, id);
             } else if (path.equals("/vendors") && "POST".equals(method)) {
                 handleVendorsSearch(exchange);
             } else if (path.matches("/vendors/\\d+") && "GET".equals(method)) {
@@ -59,7 +66,7 @@ public class BuyerHTTPHandler implements HttpHandler {
                 handleGetItem(exchange, id);
             } else if (path.equals("/favorites") && "GET".equals(method)) {
                 handleGetFavorites(exchange);
-            } else if (path.matches("/favorites/\\d+") && "POST".equals(method)) {
+            } else if (path.matches("/favorites/\\d+") && "PUT".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
                 handleAddFavorite(exchange, id);
             } else if (path.matches("/favorites/\\d+") && "DELETE".equals(method)) {
@@ -67,7 +74,6 @@ public class BuyerHTTPHandler implements HttpHandler {
                 handleRemoveFavorite(exchange, id);
             } else if (path.equals("/coupons") && "GET".equals(method)) {
                 handleCheckCoupon(exchange);
-
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Buyer endpoint not found.")));
             }
@@ -113,6 +119,20 @@ public class BuyerHTTPHandler implements HttpHandler {
         }
 
         List<RestaurantDto.Response> list = buyerService.searchVendors(requestDto);
+        Utils.sendResponse(exchange, 200, gson.toJson(list));
+
+    }
+
+    private void handleVendorsMenus(HttpExchange exchange, Long id) throws IOException, java.io.IOException {
+
+        List<MenuDto.Response> list = buyerService.getRestaurantMenus(id);
+        Utils.sendResponse(exchange, 200, gson.toJson(list));
+
+    }
+
+    private void handleMenuItems(HttpExchange exchange, Long id) throws IOException, java.io.IOException {
+
+        List<FoodItemDto.Response> list = buyerService.getMenuItems(id);
         Utils.sendResponse(exchange, 200, gson.toJson(list));
 
     }

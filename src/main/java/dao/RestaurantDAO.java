@@ -51,7 +51,7 @@ public class RestaurantDAO {
 
     public Optional<Restaurant> findRestaurantById(Long id) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            Query<Restaurant> query = session.createQuery("FROM Restaurant WHERE id = :id", Restaurant.class);
+            Query<Restaurant> query = session.createQuery("FROM Restaurant r LEFT JOIN FETCH r.menus WHERE r.id = :id", Restaurant.class);
             query.setParameter("id", id);
             return query.uniqueResultOptional();
         } catch (Exception e) {

@@ -19,6 +19,7 @@ import util.Utils;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
 public class RestaurantHttpHandler implements HttpHandler {
@@ -84,18 +85,21 @@ public class RestaurantHttpHandler implements HttpHandler {
 
             } else if (path.matches("^/restaurants/\\d+/menu/[^/]+$") && "DELETE".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
-                String title = path.split("/")[4];
+                String encodedTitle = path.split("/")[4];
+                String title = URLDecoder.decode(encodedTitle, StandardCharsets.UTF_8);
                 handleDeleteMenu(exchange, id, title);
 
 
             } else if (path.matches("^/restaurants/\\d+/menu/[^/]+$") && "PUT".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
-                String title = path.split("/")[4];
+                String encodedTitle = path.split("/")[4];
+                String title = URLDecoder.decode(encodedTitle, StandardCharsets.UTF_8);
                 handleAddFoodToMenu(exchange, id, title);
 
-            } else if (path.matches("^/restaurants/\\d+/menu/[^/]+/\\d+$")) {
+            } else if (path.matches("^/restaurants/\\d+/menu/[^/]+/\\d+$") && "DELETE".equals(method)) {
                 Long restaurantId = Long.parseLong(path.split("/")[2]);
-                String title = path.split("/")[4];
+                String encodedTitle = path.split("/")[4];
+                String title = URLDecoder.decode(encodedTitle, StandardCharsets.UTF_8);
                 Long foodId = Long.parseLong(path.split("/")[5]);
                 handleDeleteFoodFromMenu(exchange, restaurantId, title, foodId);
 
@@ -301,6 +305,8 @@ public class RestaurantHttpHandler implements HttpHandler {
                 return;
             }
         }
+
+        requestDto.setTitle(URLDecoder.decode(requestDto.getTitle(), StandardCharsets.UTF_8));
 
         Utils.sendResponse(exchange, 200, gson.toJson(menuService.createMenu(requestDto, ownerUserPhone, id)));
     }

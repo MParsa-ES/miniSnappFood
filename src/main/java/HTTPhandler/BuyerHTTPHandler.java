@@ -51,8 +51,8 @@ public class BuyerHTTPHandler implements HttpHandler {
             } else if (path.matches("/vendors/menus/\\d+") && method.equals("GET")) {
                 Long id = Long.parseLong(path.split("/")[3]);
                 handleVendorsMenus(exchange, id);
-            } else if (path.matches("/menus/items/\\d+") && method.equals("GET")) {
-                Long id = Long.parseLong(path.split("/")[3]);
+            } else if (path.matches("/menus/\\d+/items") && method.equals("GET")) {
+                Long id = Long.parseLong(path.split("/")[2]);
                 handleMenuItems(exchange, id);
             } else if (path.equals("/vendors") && "POST".equals(method)) {
                 handleVendorsSearch(exchange);
@@ -66,7 +66,7 @@ public class BuyerHTTPHandler implements HttpHandler {
                 handleGetItem(exchange, id);
             } else if (path.equals("/favorites") && "GET".equals(method)) {
                 handleGetFavorites(exchange);
-            } else if (path.matches("/favorites/\\d+") && "POST".equals(method)) {
+            } else if (path.matches("/favorites/\\d+") && "PUT".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
                 handleAddFavorite(exchange, id);
             } else if (path.matches("/favorites/\\d+") && "DELETE".equals(method)) {

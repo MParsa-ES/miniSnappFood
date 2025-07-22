@@ -115,6 +115,7 @@ public class BuyerService {
                         restaurant.getId(),
                         item.getPrice(),
                         item.getSupply(),
+                        item.getAverageRating(),
                         item.getKeywords()
                 ));
             }
@@ -138,6 +139,7 @@ public class BuyerService {
                     item.getRestaurant().getId(),
                     item.getPrice(),
                     item.getSupply(),
+                    item.getAverageRating(),
                     item.getKeywords()
             ));
         }
@@ -157,6 +159,7 @@ public class BuyerService {
                 foodItem.getRestaurant().getId(),
                 foodItem.getPrice(),
                 foodItem.getSupply(),
+                foodItem.getAverageRating(),
                 foodItem.getKeywords()
         );
 
@@ -255,6 +258,7 @@ public class BuyerService {
                     restaurant.getId(),
                     foodItem.getPrice(),
                     foodItem.getSupply(),
+                    foodItem.getAverageRating(),
                     foodItem.getKeywords()
             ));
         }

@@ -265,22 +265,22 @@ public class OrderDAO {
                     "WHERE 1=1");
 
             if (vendor != null && !vendor.isBlank()) {
-                hql.append(" AND r.name LIKE :vendorName");
+                hql.append(" OR r.name LIKE :vendorName");
                 params.put("vendorName","%" + vendor + "%");
             }
 
             if (courier != null && !courier.isBlank()) {
-                hql.append(" AND co.fullName LIKE :courierName");
+                hql.append(" OR co.fullName LIKE :courierName");
                 params.put("courierName","%" + courier + "%");
             }
 
             if (customer != null && !customer.isBlank()) {
-                hql.append(" AND cu.fullName LIKE :customerName");
+                hql.append(" OR cu.fullName LIKE :customerName");
                 params.put("customerName","%" + customer + "%");
             }
 
             if (status != null && !status.isBlank()) {
-                hql.append(" AND o.status = :status ");
+                hql.append(" OR o.status = :status ");
                 try {
                     params.put("status", OrderStatus.valueOf(status.toUpperCase()));
                 } catch (IllegalArgumentException e) {
@@ -290,7 +290,7 @@ public class OrderDAO {
             }
 
             if (search != null && !search.isBlank()) {
-                hql.append(" AND fi.name LIKE :searchQuery");
+                hql.append(" OR fi.name LIKE :searchQuery");
                 params.put("searchQuery","%" + search + "%");
             }
 

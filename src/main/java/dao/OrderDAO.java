@@ -7,10 +7,7 @@ import org.hibernate.Transaction;
 import org.hibernate.query.Query;
 import util.HibernateUtil;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 
 public class OrderDAO {
@@ -105,32 +102,36 @@ public class OrderDAO {
 
     public List<Order> findByRestaurantId(Long restaurantId, String status, String search, String user, String courier) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-
             Map<String, Object> params = new HashMap<>();
-
             StringBuilder hqlBuilder = new StringBuilder("SELECT DISTINCT o FROM Order o " +
                     "LEFT JOIN FETCH o.customer c " +
+                    "LEFT JOIN FETCH o.courier co " +
                     "LEFT JOIN FETCH o.items oi " +
                     "LEFT JOIN oi.foodItem fi " +
                     "WHERE o.restaurant.id = :restaurantId");
             params.put("restaurantId", restaurantId);
+
+            List<String> optionalFilters = new ArrayList<>();
 
             if (status != null && !status.isBlank()) {
                 hqlBuilder.append(" AND o.status = :status");
                 params.put("status", OrderStatus.valueOf(status.toUpperCase()));
             }
             if (search != null && !search.isBlank()) {
-                hqlBuilder.append(" AND fi.name LIKE :searchQuery");
+                optionalFilters.add("fi.name LIKE :searchQuery");
                 params.put("searchQuery", "%" + search + "%");
             }
             if (user != null && !user.isBlank()) {
-                hqlBuilder.append(" AND (c.fullName LIKE :userName)");
+                optionalFilters.add("c.fullName LIKE :userName");
                 params.put("userName", "%" + user + "%");
             }
-
-            // TODO: add after finishing the courier part -> think its done
             if (courier != null && !courier.isBlank()) {
-                hqlBuilder.append(" AND (o.courier.name LIKE :courierName)");
+                optionalFilters.add("co.fullName LIKE :courierName");
+                params.put("courierName", "%" + courier + "%");
+            }
+
+            if (!optionalFilters.isEmpty()) {
+                hqlBuilder.append(" AND (").append(String.join(" OR ", optionalFilters)).append(")");
             }
 
             hqlBuilder.append(" ORDER BY o.createdAt DESC");
@@ -265,22 +266,22 @@ public class OrderDAO {
                     "WHERE 1=1");
 
             if (vendor != null && !vendor.isBlank()) {
-                hql.append(" OR r.name LIKE :vendorName");
+                hql.append(" AND r.name LIKE :vendorName");
                 params.put("vendorName","%" + vendor + "%");
             }
 
             if (courier != null && !courier.isBlank()) {
-                hql.append(" OR co.fullName LIKE :courierName");
+                hql.append(" AND co.fullName LIKE :courierName");
                 params.put("courierName","%" + courier + "%");
             }
 
             if (customer != null && !customer.isBlank()) {
-                hql.append(" OR cu.fullName LIKE :customerName");
+                hql.append(" AND cu.fullName LIKE :customerName");
                 params.put("customerName","%" + customer + "%");
             }
 
             if (status != null && !status.isBlank()) {
-                hql.append(" OR o.status = :status ");
+                hql.append(" AND o.status = :status ");
                 try {
                     params.put("status", OrderStatus.valueOf(status.toUpperCase()));
                 } catch (IllegalArgumentException e) {

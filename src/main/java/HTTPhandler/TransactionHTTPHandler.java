@@ -42,6 +42,8 @@ public class TransactionHTTPHandler implements HttpHandler {
         try {
             if (path.equals("/payment/online") && "POST".equals(method)) {
                 handlePayment(exchange);
+            } else if (path.equals("/wallet/balance") && "GET".equals(method)) {
+                handleWalletBalance(exchange);
             } else if (path.equals("/wallet/top-up") && "POST".equals(method)) {
                 handleWalletTopUp(exchange);
             } else if (path.equals("/transactions") && "GET".equals(method)) {
@@ -59,7 +61,8 @@ public class TransactionHTTPHandler implements HttpHandler {
         }
     }
 
-    private void handlePayment(HttpExchange exchange) throws IOException, java.io.IOException {
+    private void handlePayment(HttpExchange exchange) throws IOException, java.io.IOException, OrderServiceExceptions.InvalidOrderState,
+            OrderServiceExceptions.NotEnoughBalance, UserNotFoundException {
         if (Utils.checkUnathorizedMediaType(exchange)) {
             Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
             return;
@@ -83,13 +86,33 @@ public class TransactionHTTPHandler implements HttpHandler {
             String phone = Utils.getAuthenticatedUserPhone(exchange);
             TransactionDTO.PaymentResponseDTO responseDTO = transactionService.payment(requestDTO, phone);
             Utils.sendResponse(exchange, 200, gson.toJson(responseDTO));
+        } catch (OrderServiceExceptions.NotEnoughBalance | OrderServiceExceptions.InvalidOrderState e) {
+            Utils.sendResponse(exchange, 409, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (OrderServiceExceptions.OrderNotCompleted e) {
-            Utils.sendResponse(exchange, 400, gson.toJson(e));
+            Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto(e.getMessage())));
         } catch (UserNotFoundException | OrderServiceExceptions.OrderNotFound e) {
-            Utils.sendResponse(exchange, 404, gson.toJson(e));
-        } catch (OrderServiceExceptions.InvalidOrderState e) {
-            Utils.sendResponse(exchange, 409, gson.toJson(e));
+            Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto(e.getMessage())));
+        } catch (RuntimeException e) {
+            Utils.sendResponse(exchange, 500, gson.toJson(new ErrorResponseDto(e.getMessage())));
         }
+
+    }
+
+    private void handleWalletBalance(HttpExchange exchange) throws IOException, java.io.IOException {
+        if (Utils.getAuthenticatedUserPhone(exchange) == null) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        }
+
+        String phone = Utils.getAuthenticatedUserPhone(exchange);
+
+        BigDecimal balance = transactionService.getWalletBalance(phone);
+
+        if (balance == null) {
+            Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid balance")));
+            return;
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(balance));
 
     }
 

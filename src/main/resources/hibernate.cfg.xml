@@ -36,6 +36,7 @@
         <mapping class="entity.Menu"/>
         <mapping class="entity.FoodItem"/>
         <mapping class="entity.Category"/>
+        <mapping class="entity.Transaction"/>
         <mapping class="entity.Order"/>
         <mapping class="entity.OrderItem"/>
         <mapping class="entity.Rating"/>

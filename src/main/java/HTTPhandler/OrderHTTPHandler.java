@@ -52,8 +52,6 @@ public class OrderHTTPHandler implements HttpHandler {
                 handleCreateOrder(exchange);
             } else if (path.equals("/orders/history") && method.equals("GET")) {
                 handleGetHistory(exchange);
-
-
             } else if (path.matches("/orders/\\d+") && method.equals("GET")) {
                 Long id = Long.parseLong(path.split("/")[2]);
                 handleGetOrderById(exchange, id);

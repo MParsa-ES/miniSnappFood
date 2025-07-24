@@ -10,6 +10,7 @@ import dao.UserDAO;
 import dto.AdminDto;
 import dto.CouponDto;
 import dto.ErrorResponseDto;
+import jdk.jshell.execution.Util;
 import service.AdminService;
 import service.exception.AdminServiceExceptions;
 import service.exception.CouponServiceExceptions;
@@ -57,6 +58,11 @@ public class AdminHTTPHandler implements HttpHandler {
             } else if (path.matches("^/admin/users/\\d+/status$") && method.equals("PATCH")) {
                 Long userId = Long.parseLong(path.split("/")[3]);
                 handleUpdateApprovalStatus(exchange, userId);
+
+
+            } else if (path.matches("^/admin/users/\\d+/remove$")  && method.equals("DELETE")) {
+                Long userId = Long.parseLong(path.split("/")[3]);
+                handleDeleteUser(exchange, userId);
 
 
             } else if (path.equals("/admin/orders") && method.equals("GET")) {
@@ -143,6 +149,17 @@ public class AdminHTTPHandler implements HttpHandler {
 
         Utils.sendResponse(exchange, 200, gson.toJson(adminService.updateUserApprovalStatus(adminUserName, requestDto, userId)));
     }
+
+    private void handleDeleteUser(HttpExchange exchange, Long userId) throws IOException {
+        String adminUserName = Utils.getAuthenticatedUserPhone(exchange);
+
+        if (adminUserName == null) {
+            return;
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(adminService.deleteUserFromSystem(adminUserName, userId)));
+    }
+
 
     private void handleGetAllOrdersWithFilters(HttpExchange exchange) throws IOException {
 

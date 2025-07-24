@@ -95,4 +95,25 @@ public class UserDAO {
             }
         }
     }
+
+    public void deleteById(Long userId) {
+        Transaction transaction = null;
+        Session session = null;
+        try {
+            session = HibernateUtil.getSessionFactory().openSession();
+            transaction = session.beginTransaction();
+            session.delete(session.get(User.class, userId));
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            e.printStackTrace();
+            System.err.println("Error deleting user with ID" + userId + ": " + e.getMessage());
+        } finally {
+            if (session != null && session.isOpen()) {
+                session.close();
+            }
+        }
+    }
 }

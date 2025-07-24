@@ -24,7 +24,7 @@ public class AdminService {
     }
 
 
-    public ArrayList<UserLoginDto.Response.UserData> getUsersList(String adminUserName) throws
+    public ArrayList<UserLoginDto.UserData> getUsersList(String adminUserName) throws
             UserNotFoundException, AdminServiceExceptions.UserNotAdminException {
 
         User admin = userDAO.findByPhone(adminUserName).orElseThrow(
@@ -35,7 +35,7 @@ public class AdminService {
             throw new AdminServiceExceptions.UserNotAdminException("You are not admin");
         }
 
-        ArrayList<UserLoginDto.Response.UserData> users = new ArrayList<>();
+        ArrayList<UserLoginDto.UserData> users = new ArrayList<>();
 
         for (User user : userDAO.getAllUsers()) {
             users.add(mapToUserDataDto(user));
@@ -73,6 +73,25 @@ public class AdminService {
         return new MessageDto("Status updated");
 
     }
+
+    public MessageDto deleteUserFromSystem(String adminUserName, Long userId) throws UserNotFoundException, AdminServiceExceptions.UserNotAdminException {
+
+        User admin = userDAO.findByPhone(adminUserName).orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (!admin.getRole().equals(Role.ADMIN)) {
+            throw new AdminServiceExceptions.UserNotAdminException("You are not admin");
+        }
+
+        User user = userDAO.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (admin.getId().equals(user.getId())) {
+            throw new IllegalArgumentException("You cannot delete yourself from the system");
+        }
+
+        userDAO.deleteById(userId);
+        return new MessageDto("User deleted");
+    }
+
 
     public ArrayList<OrderDto.OrderResponse> getOrdersList(String adminUserName, String search, String vendor, String courier, String customer, String status){
 
@@ -266,15 +285,17 @@ public class AdminService {
 
     }
 
-    private UserLoginDto.Response.UserData mapToUserDataDto(User user) {
+    private UserLoginDto.UserData mapToUserDataDto(User user) {
 
-        UserLoginDto.Response.UserData userData = new UserLoginDto.Response.UserData();
+        UserLoginDto.UserData userData = new UserLoginDto.UserData();
         userData.setId(user.getId().toString());
         userData.setFull_name(user.getFullName());
         userData.setPhone(user.getPhone());
         userData.setEmail(user.getEmail());
         userData.setAddress(user.getAddress());
         userData.setRole(user.getRole().toString());
+        userData.setApproval_status(user.getApprovalStatus().toString());
+
 
         Profile profile = user.getProfile();
 
@@ -283,7 +304,7 @@ public class AdminService {
 
 
             if (profile.getBank_info() != null) {
-                UserLoginDto.Response.UserData.BankInfoDto bankInfoDto = new UserLoginDto.Response.UserData.BankInfoDto();
+                UserLoginDto.UserData.BankInfoDto bankInfoDto = new UserLoginDto.UserData.BankInfoDto();
                 bankInfoDto.setBank_name(profile.getBank_info().getBankName());
                 bankInfoDto.setAccount_number(profile.getBank_info().getAccountNumber());
                 userData.setBank_info(bankInfoDto);

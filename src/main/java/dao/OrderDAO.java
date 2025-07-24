@@ -291,7 +291,7 @@ public class OrderDAO {
             }
 
             if (search != null && !search.isBlank()) {
-                hql.append(" OR fi.name LIKE :searchQuery");
+                hql.append(" AND fi.name LIKE :searchQuery");
                 params.put("searchQuery","%" + search + "%");
             }
 

@@ -25,7 +25,6 @@ public class OrderItem {
     @JoinColumn(name = "food_item_id",nullable = false)
     private FoodItem foodItem;
 
-
     private int quantity;
 
     @Column(precision = 10, scale = 2, nullable = false)

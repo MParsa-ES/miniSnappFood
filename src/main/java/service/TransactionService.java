@@ -50,7 +50,6 @@ public class TransactionService {
 
         OrderStatus status = order.getStatus();
         switch (status) {
-            case WAITING_VENDOR:
             case FINDING_COURIER:
             case ON_THE_WAY:
             case COMPLETED:
@@ -146,7 +145,7 @@ public class TransactionService {
 
     }
 
-    public TransactionDTO.TransactionsList searchTransactions(String adminUsername, String search, String user, String method, String status) {
+    public List<TransactionDTO.PaymentResponseDTO> searchTransactions(String adminUsername, String search, String user, String method, String status) {
 
         User admin = userDAO.findByPhone(adminUsername).orElseThrow(
                 () -> new UserNotFoundException("User not found")
@@ -158,7 +157,7 @@ public class TransactionService {
 
         List<Transaction> transactions = transactionDAO.searchTransactions(search, user, method, status);
 
-        Set<TransactionDTO.PaymentResponseDTO> response = new HashSet<>();
+        List<TransactionDTO.PaymentResponseDTO> response = new ArrayList<>();
 
         for (Transaction transaction : transactions) {
             response.add(new TransactionDTO.PaymentResponseDTO(
@@ -169,9 +168,7 @@ public class TransactionService {
                     transaction.getStatus().toString()
             ));
         }
-
-        return new TransactionDTO.TransactionsList(response);
-
+        return response;
     }
 
 }

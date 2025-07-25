@@ -4,14 +4,15 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import dao.CouponDAO;
-import dao.OrderDAO;
-import dao.UserDAO;
+import dao.*;
 import dto.AdminDto;
 import dto.CouponDto;
 import dto.ErrorResponseDto;
+import dto.TransactionDTO;
+import entity.Order;
 import jdk.jshell.execution.Util;
 import service.AdminService;
+import service.TransactionService;
 import service.exception.AdminServiceExceptions;
 import service.exception.CouponServiceExceptions;
 import service.exception.UserNotFoundException;
@@ -30,11 +31,11 @@ public class AdminHTTPHandler implements HttpHandler {
             registerTypeAdapter(LocalDate.class, new LocalDateAdapter()).serializeNulls().create();
 
     private final AdminService adminService;
-
+    private final TransactionService transactionService;
 
     public AdminHTTPHandler() {
         this.adminService = new AdminService(new UserDAO(), new OrderDAO(), new CouponDAO());
-
+        this.transactionService = new TransactionService(new UserDAO(), new RestaurantDAO(), new FoodItemDAO(), new OrderDAO(), new RatingDAO(), new TransactionDAO());
     }
 
 
@@ -90,6 +91,10 @@ public class AdminHTTPHandler implements HttpHandler {
             } else if (path.matches("^/admin/coupons/\\d+$") && method.equals("PUT")) {
                 Long couponId = Long.parseLong(path.split("/")[3]);
                 handleUpdateCoupon(exchange, couponId);
+
+
+            }  else if (path.equals("/admin/transactions") && "GET".equals(method)) {
+                handleGetTransactions(exchange);
 
 
             } else {
@@ -304,6 +309,47 @@ public class AdminHTTPHandler implements HttpHandler {
         }
 
         Utils.sendResponse(exchange, 200, gson.toJson(adminService.updateCoupon(adminUserName, couponId, requestDto)));
+
+    }
+
+    private void handleGetTransactions(HttpExchange exchange) throws io.jsonwebtoken.io.IOException, java.io.IOException {
+        String adminUserName = Utils.getAuthenticatedUserPhone(exchange);
+        if (adminUserName == null) {
+            return;
+        }
+
+        String query = exchange.getRequestURI().getQuery();
+
+        String search = null;
+        String user = null;
+        String method = null;
+        String status = null;
+
+
+        if (query != null && !query.isEmpty()) {
+
+            for (String filter : query.split("&")) {
+                String[] keyValue = filter.split("=");
+                if (keyValue.length == 2) {
+                    switch (keyValue[0]) {
+                        case "search":
+                            search = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
+                            break;
+                        case "vendor":
+                            user = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
+                            break;
+                        case "courier":
+                            method = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
+                            break;
+                        case "status":
+                            status = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
+                            break;
+                    }
+                }
+            }
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(transactionService.searchTransactions(adminUserName, search, user, method, status)));
 
     }
 

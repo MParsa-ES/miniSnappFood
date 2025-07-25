@@ -13,6 +13,7 @@ import util.HibernateUtil;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
 
 
 @AllArgsConstructor
@@ -121,7 +122,7 @@ public class OrderService {
         order.setTaxFee(taxFee);
         order.setAdditionalFee(additionalFee);
         order.setTotalPrice(totalPrice);
-        order.setStatus(OrderStatus.WAITING_VENDOR);
+        order.setStatus(OrderStatus.SUBMITTED);
 
 
         // setting the connection between all order items and the respective order it belongs to
@@ -299,6 +300,25 @@ public class OrderService {
         }
 
         orderDAO.updateOrder(order);
+
+        if (order.getStatus().equals(OrderStatus.CANCELLED) || order.getStatus().equals(OrderStatus.UNPAID_AND_CANCELLED)) {
+            List<OrderItem> orderItems = order.getItems();
+
+            for (OrderItem orderItem : orderItems) {
+                FoodItem foodItem = orderItem.getFoodItem();
+                foodItem.setSupply(foodItem.getSupply() + orderItem.getQuantity());
+                foodItemDAO.update(foodItem);
+            }
+        }
+
+        if (order.getStatus().equals(OrderStatus.CANCELLED)) {
+            User customer = order.getCustomer();
+
+            customer.setWalletBalance(customer.getWalletBalance().add(order.getTotalPrice()));
+
+            userDAO.update(customer);
+        }
+
         return new MessageDto("Order status changed successfully");
     }
 

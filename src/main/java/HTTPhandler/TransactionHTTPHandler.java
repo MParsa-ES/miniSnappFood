@@ -48,8 +48,6 @@ public class TransactionHTTPHandler implements HttpHandler {
                 handleWalletTopUp(exchange);
             } else if (path.equals("/transactions") && "GET".equals(method)) {
                 handleUserTransactions(exchange);
-            } else if (path.equals("/admin/transactions") && "GET".equals(method)) {
-                handleGetTransactions(exchange);
             }
         } catch (IllegalArgumentException e) {
             Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Invalid input: " + e.getMessage())));
@@ -157,48 +155,6 @@ public class TransactionHTTPHandler implements HttpHandler {
         } catch (UserNotFoundException e) {
             Utils.sendResponse(exchange, 404, gson.toJson(e));
         }
-
-    }
-
-    private void handleGetTransactions(HttpExchange exchange) throws IOException, java.io.IOException {
-        String adminUserName = Utils.getAuthenticatedUserPhone(exchange);
-        if (adminUserName == null) {
-            return;
-        }
-
-        String query = exchange.getRequestURI().getQuery();
-
-        String search = null;
-        String user = null;
-        String method = null;
-        String status = null;
-
-
-        if (query != null && !query.isEmpty()) {
-
-            for (String filter : query.split("&")) {
-                String[] keyValue = filter.split("=");
-                if (keyValue.length == 2) {
-                    switch (keyValue[0]) {
-                        case "search":
-                            search = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
-                            break;
-                        case "vendor":
-                            user = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
-                            break;
-                        case "courier":
-                            method = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
-                            break;
-                        case "status":
-                            status = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
-                            break;
-                    }
-                }
-            }
-        }
-
-        TransactionDTO.TransactionsList responseDTO = transactionService.searchTransactions(adminUserName, search, user, method, status);
-        Utils.sendResponse(exchange, 200, gson.toJson(responseDTO));
 
     }
 

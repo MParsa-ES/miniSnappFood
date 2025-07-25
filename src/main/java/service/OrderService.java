@@ -121,7 +121,7 @@ public class OrderService {
         order.setTaxFee(taxFee);
         order.setAdditionalFee(additionalFee);
         order.setTotalPrice(totalPrice);
-        order.setStatus(OrderStatus.SUBMITTED);
+        order.setStatus(OrderStatus.WAITING_VENDOR);
 
 
         // setting the connection between all order items and the respective order it belongs to

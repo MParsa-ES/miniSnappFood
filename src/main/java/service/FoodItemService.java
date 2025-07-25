@@ -148,8 +148,8 @@ public class FoodItemService {
         User owner = userDAO.findByPhone(ownerUserPhone)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        if (owner.getRole() != Role.SELLER) {
-            throw new RestaurantServiceExceptions.UserNotSeller("User is not seller");
+        if (owner.getRole() != Role.SELLER && owner.getRole() != Role.ADMIN) {
+            throw new RestaurantServiceExceptions.UserNotSeller("User is not seller or admin");
         }
 
         if (!owner.getApprovalStatus().equals(ApprovalStatus.APPROVED)) {

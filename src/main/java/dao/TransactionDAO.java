@@ -69,7 +69,7 @@ public class TransactionDAO {
             Map<String, Object> params = new HashMap<>();
 
             if (search != null && !search.isBlank()) {
-                conditions.add("(u.fullName LIKE :searchTerm OR r.name LIKE :searchTerm)");
+                conditions.add("r.name LIKE :searchTerm");
                 params.put("searchTerm", "%" + search + "%");
             }
 

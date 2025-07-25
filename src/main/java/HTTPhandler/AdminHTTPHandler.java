@@ -335,10 +335,10 @@ public class AdminHTTPHandler implements HttpHandler {
                         case "search":
                             search = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
                             break;
-                        case "vendor":
+                        case "user":
                             user = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
                             break;
-                        case "courier":
+                        case "method":
                             method = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
                             break;
                         case "status":

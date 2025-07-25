@@ -112,7 +112,8 @@ public class OrderDAO {
             Query<Order> query = session.createQuery(
                     "SELECT o FROM Order o " +
                             "LEFT JOIN FETCH o.restaurant " +
-                            "LEFT JOIN FETCH o.items " +
+                            "LEFT JOIN FETCH o.items i " +
+                            "Left JOIN FETCH i.foodItem " +
                             "LEFT JOIN FETCH o.customer " +
                             "LEFT JOIN FETCH o.courier " +
                             "WHERE o.id = :orderId", Order.class);

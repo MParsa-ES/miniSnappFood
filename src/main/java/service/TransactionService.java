@@ -78,7 +78,6 @@ public class TransactionService {
             Transaction transaction = new Transaction(user, order, request.getMethod(), TransactionStatus.SUCCESS);
             transactionDAO.save(transaction);
 
-            // برگرداندن پاسخ موفقیت‌آمیز
             return new TransactionDTO.PaymentResponseDTO(
                     transaction.getId(),
                     order.getId(),

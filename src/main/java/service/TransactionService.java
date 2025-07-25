@@ -91,6 +91,7 @@ public class TransactionService {
             transactionDAO.save(failedTransaction);
 
             order.setStatus(OrderStatus.UNPAID_AND_CANCELLED);
+            resupply(order);
             orderDAO.update(order);
 
             throw new RuntimeException(paymentError.getMessage(), paymentError);
@@ -172,6 +173,15 @@ public class TransactionService {
 
         return new TransactionDTO.TransactionsList(response);
 
+    }
+
+    private void resupply(Order order) {
+        for (OrderItem item : order.getItems()) {
+            FoodItem foodItem = item.getFoodItem();
+            int quantity = foodItem.getSupply();
+            foodItem.setSupply(quantity + item.getQuantity());
+            foodItemDAO.update(foodItem);
+        }
     }
 
 }

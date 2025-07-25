@@ -32,6 +32,28 @@ public class OrderDAO {
         }
     }
 
+    public void update(Order order) {
+        Transaction transaction = null;
+        Session session = null;
+        try {
+            session = HibernateUtil.getSessionFactory().openSession();
+            transaction = session.beginTransaction();
+            session.merge(order);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            System.err.println("Error updating user with ID" + order.getId() + ": " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Could not update user with ID" + order.getId() + ": " + e.getMessage());
+        } finally {
+            if (session != null && session.isOpen()) {
+                session.close();
+            }
+        }
+    }
+
     public void save(Session session, Order order) {
         try {
             session.save(order);
@@ -87,7 +109,8 @@ public class OrderDAO {
             Query<Order> query = session.createQuery(
                     "SELECT o FROM Order o " +
                             "LEFT JOIN FETCH o.restaurant " +
-                            "LEFT JOIN FETCH o.items " +
+                            "LEFT JOIN FETCH o.items i " +
+                            "Left JOIN FETCH i.foodItem " +
                             "LEFT JOIN FETCH o.customer " +
                             "LEFT JOIN FETCH o.courier " +
                             "WHERE o.id = :orderId", Order.class);
@@ -310,4 +333,5 @@ public class OrderDAO {
             return List.of();
         }
     }
+
 }

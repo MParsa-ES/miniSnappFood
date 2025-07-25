@@ -48,7 +48,7 @@ public class MenuDAO {
 
     public Optional<Menu> getMenuItems(Long menuId) throws RestaurantServiceExceptions, MenuServiceExceptions {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            Query<Menu> query = session.createQuery("from Menu m LEFT JOIN FETCH m.foodItems LEFT JOIN FETCH m.restaurant where m.id=:menuId", Menu.class);
+            Query<Menu> query = session.createQuery("from Menu m LEFT JOIN FETCH m.foodItems f LEFT JOIN FETCH m.restaurant LEFT JOIN FETCH f.keywords where m.id=:menuId", Menu.class);
             query.setParameter("menuId", menuId);
             return Optional.ofNullable(query.uniqueResult());
         } catch (Exception e) {

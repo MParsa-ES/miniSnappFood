@@ -33,18 +33,22 @@ public class OrderServiceExceptions extends RuntimeException {
     }
 
     public static class UserIsNotOwnerOfOrder extends RuntimeException {
-        public UserIsNotOwnerOfOrder(String message) {}
+        public UserIsNotOwnerOfOrder(String message) { super(message); }
     }
 
     public static class OrderNotCompleted extends RuntimeException {
-        public OrderNotCompleted(String message) {}
+        public OrderNotCompleted(String message) { super(message); }
     }
 
     public static class InvalidOrderState extends RuntimeException {
-        public InvalidOrderState(String message) {}
+        public InvalidOrderState(String message) { super(message); }
+    }
+
+    public static class NotEnoughBalance extends RuntimeException {
+        public NotEnoughBalance(String message) { super(message); }
     }
 
     public static class RatingAlreadyExists extends RuntimeException {
-        public RatingAlreadyExists(String message) {}
+        public RatingAlreadyExists(String message) { super(message); }
     }
 }

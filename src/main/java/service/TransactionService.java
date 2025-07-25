@@ -32,7 +32,7 @@ public class TransactionService {
         this.transactionDAO = transactionDAO;
     }
 
-    public TransactionDTO.PaymentResponseDTO payment(TransactionDTO.PaymentRequestDTO request, String phone) {
+    public TransactionDTO.PaymentResponseDTO payment(TransactionDTO.PaymentRequestDTO request, String phone) throws OrderServiceExceptions.NotEnoughBalance {
 
         User user = userDAO.findByPhone(phone)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -61,24 +61,49 @@ public class TransactionService {
                 throw new OrderServiceExceptions.InvalidOrderState("This order has been cancelled and cannot be paid");
         }
 
-        Transaction transaction = new Transaction(
-                user,
-                order,
-                request.getMethod(),
-                TransactionStatus.SUCCESS
-        );
 
-        order.setStatus(OrderStatus.WAITING_VENDOR);
-        orderDAO.save(order);
-        transactionDAO.save(transaction);
+        try {
+            if (request.getMethod().equals(TransactionMethod.WALLET)) {
+                if (user.getWalletBalance().compareTo(order.getTotalPrice()) < 0) {
+                    throw new OrderServiceExceptions.NotEnoughBalance("Not enough balance");
+                }
 
-        return new TransactionDTO.PaymentResponseDTO(
-                transaction.getId(),
-                order.getId(),
-                user.getId(),
-                transaction.getMethod().toString(),
-                transaction.getStatus().toString()
-        );
+                user.setWalletBalance(user.getWalletBalance().subtract(order.getTotalPrice()));
+                userDAO.update(user);
+            }
+
+            order.setStatus(OrderStatus.WAITING_VENDOR);
+            orderDAO.update(order);
+
+            Transaction transaction = new Transaction(user, order, request.getMethod(), TransactionStatus.SUCCESS);
+            transactionDAO.save(transaction);
+
+            return new TransactionDTO.PaymentResponseDTO(
+                    transaction.getId(),
+                    order.getId(),
+                    user.getId(),
+                    transaction.getMethod().toString(),
+                    transaction.getStatus().toString()
+            );
+        } catch (Exception paymentError) {
+
+            Transaction failedTransaction = new Transaction(user, order, request.getMethod(), TransactionStatus.FAILED);
+            transactionDAO.save(failedTransaction);
+
+            order.setStatus(OrderStatus.UNPAID_AND_CANCELLED);
+            orderDAO.update(order);
+
+            throw new RuntimeException(paymentError.getMessage(), paymentError);
+        }
+
+    }
+
+    public BigDecimal getWalletBalance(String phone) {
+
+        User user = userDAO.findByPhone(phone)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return user.getWalletBalance();
 
     }
 

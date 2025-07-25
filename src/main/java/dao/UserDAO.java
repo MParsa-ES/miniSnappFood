@@ -116,4 +116,11 @@ public class UserDAO {
             }
         }
     }
+
+    public Long getTotalUsersCount() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<Long> query = session.createQuery("SELECT COUNT(u.id) FROM User u", Long.class);
+            return query.getSingleResult();
+        }
+    }
 }

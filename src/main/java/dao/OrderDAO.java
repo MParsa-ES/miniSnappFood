@@ -229,7 +229,7 @@ public class OrderDAO {
 
     }
 
-    public List<Order> findOrdersHistoryByCourierId(Long courierId, String search, String vendor, String user){
+    public List<Order> findOrdersHistoryByCourierId(Long courierId, String search, String vendor, String user, String status){
         try(Session session = HibernateUtil.getSessionFactory().openSession()) {
 
             StringBuilder hql = new StringBuilder("SELECT DISTINCT o FROM Order o " +
@@ -257,6 +257,9 @@ public class OrderDAO {
             if (vendor != null && !vendor.isBlank()) {
                 hql.append(" AND r.name LIKE :vendor ");
                 params.put("vendor","%" + vendor + "%");
+            }
+            if (status != null && !status.isBlank()) {
+                hql.append(" AND c.status = :status");
             }
 
             hql.append(" ORDER BY o.createdAt DESC");

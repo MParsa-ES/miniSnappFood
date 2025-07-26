@@ -102,7 +102,7 @@ public class DeliveryService {
     }
 
 
-    public ArrayList<OrderDto.OrderResponse> getDeliveryHistory(String courierPhoneNumber, String search, String vendor, String user) throws
+    public ArrayList<OrderDto.OrderResponse> getDeliveryHistory(String courierPhoneNumber, String search, String vendor, String user, String status) throws
             UserNotFoundException, DeliveryServiceExceptions.UserNotCourier {
 
         User courier = userDAO.findByPhone(courierPhoneNumber).orElseThrow(
@@ -118,7 +118,7 @@ public class DeliveryService {
         }
 
         ArrayList<OrderDto.OrderResponse> orders = new ArrayList<>();
-        for (Order order : orderDAO.findOrdersHistoryByCourierId(courier.getId(), search, vendor, user)){
+        for (Order order : orderDAO.findOrdersHistoryByCourierId(courier.getId(), search, vendor, user, status)){
             orders.add(mapOrderToResponseDto(order));
         }
 

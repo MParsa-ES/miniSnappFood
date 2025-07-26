@@ -124,6 +124,7 @@ public class DeliveryHTTPHandler implements HttpHandler {
         String search = null;
         String vendor = null;
         String user = null;
+        String status = null;
 
         if (query != null) {
             for (String pair : query.split("&")) {
@@ -139,10 +140,13 @@ public class DeliveryHTTPHandler implements HttpHandler {
                     if (keyValue[0].equals("user")) {
                         user = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
                     }
+                    if (keyValue[0].equals("status")) {
+                        status = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
+                    }
                 }
             }
         }
 
-        Utils.sendResponse(exchange, 200, gson.toJson(deliveryService.getDeliveryHistory(courierPhoneNumber, search, vendor, user)));
+        Utils.sendResponse(exchange, 200, gson.toJson(deliveryService.getDeliveryHistory(courierPhoneNumber, search, vendor, user, status)));
     }
 }

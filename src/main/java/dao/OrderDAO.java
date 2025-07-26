@@ -69,9 +69,11 @@ public class OrderDAO {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
 
             StringBuilder hqlBuilder = new StringBuilder("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.items oi" +
-                    " LEFT JOIN oi.foodItem fi WHERE o.customer.id = :customerId");
+                    " LEFT JOIN oi.foodItem fi WHERE o.customer.id = :customerId AND o.status != :excludedStatus");
+
             Map<String, Object> parameters = new HashMap<>();
             parameters.put("customerId", customerId);
+            parameters.put("excludedStatus", OrderStatus.UNPAID_AND_CANCELLED);
 
 
             if (vendor != null && !vendor.isBlank()) {

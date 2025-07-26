@@ -354,4 +354,20 @@ public class OrderService {
         return response;
     }
 
+    public OrderDto.NamesResponse getNamesForFront(OrderDto.NamesRequest requestDto) {
+
+        Restaurant restaurant = restaurantDAO.findRestaurantById(requestDto.getVendor_id())
+                .orElseThrow(() -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found"));
+
+        List<String> itemNames = new ArrayList<>();
+        for(Long id : requestDto.getItem_ids()) {
+            FoodItem item = foodItemDAO.findOnlyFoodItemById(id)
+                    .orElseThrow(() -> new RestaurantServiceExceptions.ItemNotFound("Item not found"));
+            itemNames.add(item.getName());
+        }
+
+        return new OrderDto.NamesResponse(restaurant.getName(), itemNames);
+
+    }
+
 }

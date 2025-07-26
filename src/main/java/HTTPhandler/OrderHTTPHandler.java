@@ -55,9 +55,10 @@ public class OrderHTTPHandler implements HttpHandler {
             } else if (path.matches("/orders/\\d+") && method.equals("GET")) {
                 Long id = Long.parseLong(path.split("/")[2]);
                 handleGetOrderById(exchange, id);
-
-
+            } else if (path.matches("/orders/names") && method.equals("POST")) {
+                handleGetNames(exchange);
             } else {
+
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Order endpoint not found")));
             }
         } catch (UserNotFoundException | RestaurantServiceExceptions.RestaurantNotFound |
@@ -87,7 +88,6 @@ public class OrderHTTPHandler implements HttpHandler {
             return;
         }
 
-        // check for user token
         String customerUserPhone = Utils.getAuthenticatedUserPhone(exchange);
         if (customerUserPhone == null) {
             return;
@@ -146,4 +146,26 @@ public class OrderHTTPHandler implements HttpHandler {
         Utils.sendResponse(exchange, 200, gson.toJson(orderService.getOrderById(customerUserPhone, id)));
 
     }
+
+    private void handleGetNames(HttpExchange exchange) throws IOException {
+        if (Utils.checkUnathorizedMediaType(exchange)) {
+            Utils.sendResponse(exchange, 415, gson.toJson(new ErrorResponseDto("Unsupported media type")));
+            return;
+        }
+
+
+        OrderDto.NamesRequest requestDto;
+        try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+            requestDto = gson.fromJson(reader, OrderDto.NamesRequest.class);
+            if (requestDto == null) {
+                Utils.sendResponse(exchange, 400, gson.toJson(new ErrorResponseDto("Request body is missing")));
+                return;
+            }
+        }
+
+        OrderDto.NamesResponse responseDto = orderService.getNamesForFront(requestDto);
+        Utils.sendResponse(exchange, 200, gson.toJson(responseDto));
+
+    }
+
 }

@@ -7,6 +7,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.List;
 
 public class OrderDto {
 
@@ -50,6 +51,24 @@ public class OrderDto {
         private String status;
         private String created_at;
         private String updated_at;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class NamesRequest {
+        private Long vendor_id;
+        private List<Long> item_ids;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class NamesResponse {
+        private String restaurant_name;
+        private List<String> item_names;
     }
 
     @Getter

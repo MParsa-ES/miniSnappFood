@@ -339,7 +339,11 @@ public class AdminService {
         response.setDelivery_address(order.getDeliveryAddress());
         response.setCustomer_id(order.getCustomer().getId());
         response.setVendor_id(order.getRestaurant().getId());
-        response.setCoupon_id(order.getCoupon().getId());
+
+        if (order.getCoupon() != null) {
+            response.setCoupon_id(order.getCoupon().getId());
+        }
+
         response.setRaw_price(order.getRawPrice());
         response.setTax_fee(order.getTaxFee());
         response.setAdditional_fee(order.getAdditionalFee());

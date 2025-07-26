@@ -259,7 +259,8 @@ public class OrderDAO {
                 params.put("vendor","%" + vendor + "%");
             }
             if (status != null && !status.isBlank()) {
-                hql.append(" AND c.status = :status");
+                hql.append(" AND o.status = :status");
+                params.put("status", OrderStatus.valueOf(status.toUpperCase()));
             }
 
             hql.append(" ORDER BY o.createdAt DESC");
@@ -343,7 +344,7 @@ public class OrderDAO {
     public Long getTotalOrdersCountForToday() {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Query<Long> query = session.createQuery("SELECT COUNT(o.id) FROM Order o WHERE o.createdAt >= :today", Long.class);
-            query.setParameter("today", LocalDateTime.now());
+            query.setParameter("today", LocalDate.now().atStartOfDay());
             return query.getSingleResult();
 
         }

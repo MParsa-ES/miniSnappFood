@@ -12,10 +12,11 @@ import service.exception.UserNotFoundException;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Optional;
 
 public class DeliveryService {
 
-    private final BigDecimal COURIER_FEE = new BigDecimal("1000");
+    private final BigDecimal COURIER_FEE = new BigDecimal("20000");
     private final UserDAO userDAO;
     private final OrderDAO orderDAO;
 
@@ -70,16 +71,16 @@ public class DeliveryService {
                 () -> new OrderServiceExceptions.OrderNotFound("Order with ID" + orderId + " not found")
         );
 
-        if (!order.getStatus().equals(OrderStatus.FINDING_COURIER)){
-            throw new DeliveryServiceExceptions.OrderNotReadyForDelivery("Order with ID" + orderId + " is not ready for delivery");
-        }
-
         if (order.getCourier() != null && !order.getCourier().equals(courier)){
             throw new DeliveryServiceExceptions.OrderAlreadyAssignedToCourier("This order is already assigned to another courier");
         }
 
-        if (orderDAO.findActiveOrderByCourierId(courier.getId()).isPresent()){
-            throw new DeliveryServiceExceptions.CourierIsBusy("This courier is already busy delivering order with ID" + orderId);
+        Optional<Order> conflictingOrder = orderDAO.findActiveOrderByCourierId(courier.getId());
+
+        if (conflictingOrder.isPresent()){
+            if (!conflictingOrder.get().getId().equals(order.getId())){
+                throw new DeliveryServiceExceptions.CourierIsBusy("This courier is already busy delivering order with ID" + orderId);
+            }
         }
 
         try {
@@ -90,8 +91,8 @@ public class DeliveryService {
 
         if (order.getCourier() == null){
             order.setCourier(courier);
-            order.setCourierFee(COURIER_FEE);
-            order.setTotalPrice(order.getTotalPrice().add(COURIER_FEE));
+//            order.setCourierFee(COURIER_FEE);
+//            order.setTotalPrice(order.getTotalPrice().add(COURIER_FEE));
         }
 
         orderDAO.updateOrder(order);
@@ -102,7 +103,7 @@ public class DeliveryService {
     }
 
 
-    public ArrayList<OrderDto.OrderResponse> getDeliveryHistory(String courierPhoneNumber, String search, String vendor, String user) throws
+    public ArrayList<OrderDto.OrderResponse> getDeliveryHistory(String courierPhoneNumber, String search, String vendor, String user, String status) throws
             UserNotFoundException, DeliveryServiceExceptions.UserNotCourier {
 
         User courier = userDAO.findByPhone(courierPhoneNumber).orElseThrow(
@@ -118,7 +119,7 @@ public class DeliveryService {
         }
 
         ArrayList<OrderDto.OrderResponse> orders = new ArrayList<>();
-        for (Order order : orderDAO.findOrdersHistoryByCourierId(courier.getId(), search, vendor, user)){
+        for (Order order : orderDAO.findOrdersHistoryByCourierId(courier.getId(), search, vendor, user, status)){
             orders.add(mapOrderToResponseDto(order));
         }
 

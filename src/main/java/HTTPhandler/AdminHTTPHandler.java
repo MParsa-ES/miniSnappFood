@@ -34,7 +34,7 @@ public class AdminHTTPHandler implements HttpHandler {
     private final TransactionService transactionService;
 
     public AdminHTTPHandler() {
-        this.adminService = new AdminService(new UserDAO(), new OrderDAO(), new CouponDAO());
+        this.adminService = new AdminService(new UserDAO(), new OrderDAO(), new CouponDAO(), new RestaurantDAO());
         this.transactionService = new TransactionService(new UserDAO(), new RestaurantDAO(), new FoodItemDAO(), new OrderDAO(), new RatingDAO(), new TransactionDAO());
     }
 
@@ -95,6 +95,10 @@ public class AdminHTTPHandler implements HttpHandler {
 
             }  else if (path.equals("/admin/transactions") && "GET".equals(method)) {
                 handleGetTransactions(exchange);
+
+
+            } else if (path.matches("^/admin/statistics$") && method.equals("GET")) {
+                handleGetStatistics(exchange);
 
 
             } else {
@@ -335,10 +339,10 @@ public class AdminHTTPHandler implements HttpHandler {
                         case "search":
                             search = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
                             break;
-                        case "vendor":
+                        case "user":
                             user = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
                             break;
-                        case "courier":
+                        case "method":
                             method = java.net.URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
                             break;
                         case "status":
@@ -351,6 +355,15 @@ public class AdminHTTPHandler implements HttpHandler {
 
         Utils.sendResponse(exchange, 200, gson.toJson(transactionService.searchTransactions(adminUserName, search, user, method, status)));
 
+    }
+
+    private void handleGetStatistics(HttpExchange exchange) throws IOException {
+        String adminUserName = Utils.getAuthenticatedUserPhone(exchange);
+        if (adminUserName == null) {
+            return;
+        }
+
+        Utils.sendResponse(exchange, 200 , gson.toJson(adminService.getAdminStatistics(adminUserName)));
     }
 
 }

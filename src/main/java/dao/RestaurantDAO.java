@@ -74,4 +74,11 @@ public class RestaurantDAO {
             throw new RuntimeException("Could not update restaurant");
         }
     }
+
+    public Long getTotalRestaurantsCount() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<Long> query = session.createQuery("SELECT COUNT(r.id) FROM Restaurant r", Long.class);
+            return query.getSingleResult();
+        }
+    }
 }

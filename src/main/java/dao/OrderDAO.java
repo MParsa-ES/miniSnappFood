@@ -7,6 +7,9 @@ import org.hibernate.Transaction;
 import org.hibernate.query.Query;
 import util.HibernateUtil;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 
@@ -228,7 +231,7 @@ public class OrderDAO {
 
     }
 
-    public List<Order> findOrdersHistoryByCourierId(Long courierId, String search, String vendor, String user){
+    public List<Order> findOrdersHistoryByCourierId(Long courierId, String search, String vendor, String user, String status){
         try(Session session = HibernateUtil.getSessionFactory().openSession()) {
 
             StringBuilder hql = new StringBuilder("SELECT DISTINCT o FROM Order o " +
@@ -256,6 +259,10 @@ public class OrderDAO {
             if (vendor != null && !vendor.isBlank()) {
                 hql.append(" AND r.name LIKE :vendor ");
                 params.put("vendor","%" + vendor + "%");
+            }
+            if (status != null && !status.isBlank()) {
+                hql.append(" AND o.status = :status");
+                params.put("status", OrderStatus.valueOf(status.toUpperCase()));
             }
 
             hql.append(" ORDER BY o.createdAt DESC");
@@ -333,6 +340,25 @@ public class OrderDAO {
             System.err.println("Error finding all orders with filter: " + e.getMessage());
             e.printStackTrace();
             return List.of();
+        }
+    }
+
+    public Long getTotalOrdersCountForToday() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<Long> query = session.createQuery("SELECT COUNT(o.id) FROM Order o WHERE o.createdAt >= :today", Long.class);
+            query.setParameter("today", LocalDate.now().atStartOfDay());
+            return query.getSingleResult();
+
+        }
+    }
+
+    public BigDecimal getTotalRevenue() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<BigDecimal> query = session.createQuery("SELECT SUM(o.totalPrice) FROM Order o WHERE o.status = :status", BigDecimal.class);
+            query.setParameter("status", OrderStatus.COMPLETED);
+            BigDecimal total = query.getSingleResult();
+
+            return total == null ? BigDecimal.ZERO : total;
         }
     }
 }

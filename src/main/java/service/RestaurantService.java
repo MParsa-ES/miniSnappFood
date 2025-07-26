@@ -158,4 +158,22 @@ public class RestaurantService {
         );
 
     }
+
+    public RestaurantDto.Response getRestaurantBytId(String courierUserPhone, Long restaurantId) {
+        User courier = userDAO.findByPhone(courierUserPhone).orElseThrow(
+                () -> new UserNotFoundException("User not found")
+        );
+
+        if (!courier.getRole().equals(Role.COURIER) && !courier.getRole().equals(Role.SELLER)) {
+            throw new RestaurantServiceExceptions.UserNotSeller("User is not seller or courier");
+        }
+        Restaurant restaurant = restaurantDAO.findRestaurantById(restaurantId).orElseThrow(
+                () -> new RestaurantServiceExceptions.RestaurantNotFound("Restaurant not found")
+        );
+
+        RestaurantDto.Response restaurantDto = new RestaurantDto.Response(
+                restaurant.getId(),restaurant.getName(), restaurant.getAddress(), restaurant.getPhone(), restaurant.getLogo(), restaurant.getTaxFee(), restaurant.getAdditionalFee());
+
+        return restaurantDto;
+    }
 }

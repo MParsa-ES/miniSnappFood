@@ -7,6 +7,7 @@ import com.sun.net.httpserver.HttpHandler;
 
 import dao.*;
 import dto.*;
+import entity.Restaurant;
 import service.FoodItemService;
 import service.MenuService;
 import service.OrderService;
@@ -119,6 +120,11 @@ public class RestaurantHttpHandler implements HttpHandler {
                 handleGetRestaurantFoods(exchange, restaurantId);
 
                 
+            } else if (path.matches("^/restaurants/\\d+$") && "GET".equals(method)) {
+                Long restaurantId = Long.parseLong(path.split("/")[2]);
+                handleGetRestaurantById(exchange, restaurantId);
+
+
             } else {
                 Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Endpoint not found")));
             }
@@ -434,6 +440,16 @@ public class RestaurantHttpHandler implements HttpHandler {
         }
         
         Utils.sendResponse(exchange, 200, gson.toJson(foodItemService.GetAllFoodItems(ownerUserPhone, restaurantId)));
+    }
+
+    private void handleGetRestaurantById(HttpExchange exchange, Long restaurantId) throws IOException {
+        String courierUserPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (courierUserPhone == null) {
+            return;
+        }
+
+        Utils.sendResponse(exchange, 200, gson.toJson(restaurantService.getRestaurantBytId(courierUserPhone, restaurantId)));
+
     }
 
 }

@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import at.favre.lib.crypto.bcrypt.BCrypt;
+import dao.UserDAO;
 import dto.*;
 import entity.*;
 import org.hibernate.Session;
@@ -44,6 +45,13 @@ public class UserHTTPHandler implements HttpHandler {
                 case "/auth/login" -> handleLogin(exchange);
                 case "/auth/logout" -> handleLogout(exchange);
                 default -> Utils.sendResponse(exchange, 404, gson.toJson(new ErrorResponseDto("Page Not Found")));
+            }
+        } else if ("GET".equals(exchange.getRequestMethod())) {
+            String path = exchange.getRequestURI().getPath();
+            if (path.matches("^/auth/\\d+$")) {
+                Long userId = Long.parseLong(path.split("/")[2]);
+                handleGetUserById(exchange, userId);
+
             }
         } else {
             Utils.sendResponse(exchange, 405, gson.toJson("Method not supported"));
@@ -283,6 +291,39 @@ public class UserHTTPHandler implements HttpHandler {
         profile.setUser(user);
         user.setProfile(profile);
         return user;
+    }
+
+
+    private void handleGetUserById(HttpExchange exchange, Long userId) throws IOException {
+
+        String courierPhone = Utils.getAuthenticatedUserPhone(exchange);
+        if (courierPhone == null) {
+            return;
+        }
+        UserDAO userDAO = new UserDAO();
+
+        User courier = userDAO.findByPhone(courierPhone).orElseThrow(
+                () -> new RuntimeException("User courier not found")
+        );
+        if (!courier.getRole().equals(Role.COURIER)) {
+            throw new RuntimeException("User is not courier");
+        }
+
+        User customer = userDAO.findById(userId).orElseThrow(
+                () -> new RuntimeException("User not found")
+        );
+         UserLoginDto.UserData userData = new UserLoginDto.UserData();
+         userData.setId(customer.getId().toString());
+         userData.setFull_name(customer.getFullName());
+         userData.setApproval_status(courier.getApprovalStatus().toString());
+         userData.setRole(customer.getRole().toString());
+         userData.setAddress(customer.getAddress());
+         userData.setEmail(customer.getEmail());
+         userData.setPhone(customer.getPhone());
+         userData.setRole(customer.getRole().toString());
+         
+         Utils.sendResponse(exchange, 200, gson.toJson(userData));
+         
     }
 
     private boolean isPhoneTaken(Session session, String phone) {

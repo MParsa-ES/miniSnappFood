@@ -24,6 +24,7 @@ public class OrderService {
     private final FoodItemDAO foodItemDAO;
     private final OrderDAO orderDAO;
     private final CouponDAO couponDAO;
+    private final BigDecimal COURIER_FEE  = BigDecimal.valueOf(20000);
 
 
     public OrderDto.OrderResponse createOrder(OrderDto.CreateRequest requestDto, String customerUserPhone) throws
@@ -107,7 +108,7 @@ public class OrderService {
 
         BigDecimal taxFee = BigDecimal.valueOf(restaurant.getTaxFee());
         BigDecimal additionalFee = BigDecimal.valueOf(restaurant.getAdditionalFee());
-        BigDecimal totalPrice = rawPrice.add(taxFee).add(additionalFee);
+        BigDecimal totalPrice = rawPrice.add(taxFee).add(additionalFee).add(COURIER_FEE);
 
 
 
@@ -121,11 +122,11 @@ public class OrderService {
         order.setRawPrice(rawPrice);
         order.setTaxFee(taxFee);
         order.setAdditionalFee(additionalFee);
+        order.setCourierFee(COURIER_FEE);
         order.setTotalPrice(totalPrice);
         order.setStatus(OrderStatus.SUBMITTED);
 
 
-        // setting the connection between all order items and the respective order it belongs to
         for (OrderItem item : orderFoodItems) {
             item.setOrder(order);
             order.getItems().add(item);

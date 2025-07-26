@@ -2,6 +2,7 @@ package service;
 
 import dao.CouponDAO;
 import dao.OrderDAO;
+import dao.RestaurantDAO;
 import dao.UserDAO;
 import dto.*;
 import entity.*;
@@ -16,11 +17,13 @@ public class AdminService {
     private final UserDAO userDAO;
     private final OrderDAO orderDAO;
     private final CouponDAO couponDAO;
+    private final RestaurantDAO restaurantDAO;
 
-    public AdminService(UserDAO userDAO, OrderDAO orderDAO, CouponDAO couponDAO) {
+    public AdminService(UserDAO userDAO, OrderDAO orderDAO, CouponDAO couponDAO, RestaurantDAO restaurantDAO) {
         this.userDAO = userDAO;
         this.orderDAO = orderDAO;
         this.couponDAO = couponDAO;
+        this.restaurantDAO = restaurantDAO;
     }
 
 
@@ -285,6 +288,20 @@ public class AdminService {
 
     }
 
+
+    public AdminDto.StatisticsResponse getAdminStatistics(String adminUserName) {
+        User admin = userDAO.findByPhone(adminUserName).orElseThrow(
+                () -> new UserNotFoundException("User not found")
+        );
+
+        if (!admin.getRole().equals(Role.ADMIN)) {
+            throw new AdminServiceExceptions.UserNotAdminException("You are not admin");
+        }
+
+        return new AdminDto.StatisticsResponse(userDAO.getTotalUsersCount(), restaurantDAO.getTotalRestaurantsCount(), orderDAO.getTotalOrdersCountForToday(), orderDAO.getTotalRevenue());
+
+    }
+
     private UserLoginDto.UserData mapToUserDataDto(User user) {
 
         UserLoginDto.UserData userData = new UserLoginDto.UserData();
@@ -314,6 +331,7 @@ public class AdminService {
         return userData;
     }
 
+
     private OrderDto.OrderResponse mapOrderToResponseDto(Order order) {
         OrderDto.OrderResponse response = new OrderDto.OrderResponse();
 
@@ -321,7 +339,11 @@ public class AdminService {
         response.setDelivery_address(order.getDeliveryAddress());
         response.setCustomer_id(order.getCustomer().getId());
         response.setVendor_id(order.getRestaurant().getId());
-        // TODO: set the coupon id
+
+        if (order.getCoupon() != null) {
+            response.setCoupon_id(order.getCoupon().getId());
+        }
+
         response.setRaw_price(order.getRawPrice());
         response.setTax_fee(order.getTaxFee());
         response.setAdditional_fee(order.getAdditionalFee());

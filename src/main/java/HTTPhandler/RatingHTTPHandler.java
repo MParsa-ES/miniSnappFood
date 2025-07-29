@@ -49,6 +49,9 @@ public class RatingHTTPHandler implements HttpHandler {
             } else if (path.matches("/ratings/items/\\d+") && "GET".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[3]);
                 handleGetItemRatings(exchange, id);
+            } else if (path.matches("/ratings/\\d+/check") && "GET".equals(method)) {
+                Long id = Long.parseLong(path.split("/")[2]);
+                handleCheckRating(exchange, id);
             } else if (path.matches("/ratings/\\d+") && "GET".equals(method)) {
                 Long id = Long.parseLong(path.split("/")[2]);
                 handleGetRating(exchange, id);
@@ -112,6 +115,19 @@ public class RatingHTTPHandler implements HttpHandler {
         } catch (OrderServiceExceptions | UserNotFoundException e) {
             Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto(e.getMessage())));
         }
+    }
+
+    private void handleCheckRating(HttpExchange exchange, Long id) throws IOException, SQLException, java.io.IOException {
+        if (Utils.getAuthenticatedUserPhone(exchange) == null) {
+            Utils.sendResponse(exchange, 401, gson.toJson(new ErrorResponseDto("Unauthorized request")));
+        }
+
+        String phone = Utils.getAuthenticatedUserPhone(exchange);
+
+        boolean result = RatingService.checkRating(id, phone);
+
+        Utils.sendResponse(exchange, 200, gson.toJson(result));
+
     }
 
     private void handleGetRating(HttpExchange exchange, Long id) throws IOException, java.io.IOException {

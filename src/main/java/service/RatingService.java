@@ -44,9 +44,9 @@ public class RatingService {
             throw new OrderServiceExceptions.UserIsNotOwnerOfOrder("User is not owner of the order");
         }
 
-//        if (!order.getStatus().toString().equals("COMPLETED")) {
-//            throw new OrderServiceExceptions.OrderNotCompleted("Order is not completed");
-//        }
+        if (!order.getStatus().toString().equals("COMPLETED")) {
+            throw new OrderServiceExceptions.OrderNotCompleted("Order is not completed");
+        }
 
         if(ratingDAO.doesRatingExist(user.getId(), order.getId())) {
             throw new OrderServiceExceptions.RatingAlreadyExists("Rating already exists");
@@ -73,7 +73,6 @@ public class RatingService {
     }
 
 
-
     public RatingDTO.ItemRatings getRatings (Long itemId, String phone) throws UserNotFoundException, RestaurantServiceExceptions {
 
         User user = userDAO.findByPhone(phone)
@@ -93,11 +92,24 @@ public class RatingService {
                 rating.getComment(),
                 rating.getImages(),
                 rating.getUser().getId(),
+                rating.getUser().getFullName(),
                 rating.getCreatedAt().toString()
             ));
         }
 
         return new RatingDTO.ItemRatings(foodItem.getAverageRating(), commentsDTO);
+
+    }
+
+    public boolean checkRating (Long orderId, String phone) throws UserNotFoundException, RestaurantServiceExceptions {
+
+        User user = userDAO.findByPhone(phone)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        Order order = orderDAO.findOrderById(orderId)
+                .orElseThrow(() -> new OrderServiceExceptions.OrderNotFound("Order not found"));
+
+        return ratingDAO.doesRatingExist(user.getId(), order.getId());
 
     }
 

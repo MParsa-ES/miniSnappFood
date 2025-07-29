@@ -49,7 +49,7 @@ public class RatingDAO {
     public List<Rating> getItemRatings(Long itemId) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Query<Rating> query = session.createQuery(
-                    "SELECT DISTINCT r FROM Rating r LEFT JOIN FETCH  r.user LEFT JOIN FETCH r.order o LEFT JOIN FETCH o.items oi WHERE oi.foodItem.id = :foodItemId", Rating.class);
+                    "SELECT DISTINCT r FROM Rating r LEFT JOIN FETCH  r.user LEFT JOIN FETCH r.order o LEFT JOIN FETCH o.items oi WHERE oi.foodItem.id = :foodItemId ORDER BY r.createdAt DESC", Rating.class);
             query.setParameter("foodItemId", itemId);
             return query.getResultList();
         } catch (Exception e) {

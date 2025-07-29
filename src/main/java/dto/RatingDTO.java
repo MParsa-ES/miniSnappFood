@@ -48,15 +48,17 @@ public class RatingDTO {
             String comment;
             Set<String> imageBase64;
             Long user_id;
+            String username;
             String created_at;
 
-            public Comments(Long id, Long item_id, int rating, String comment, Set<String> imageBase64, Long user_id, String created_at) {
+            public Comments(Long id, Long item_id, int rating, String comment, Set<String> imageBase64, Long user_id, String username, String created_at) {
                 this.id = id;
                 this.item_id = item_id;
                 this.rating = rating;
                 this.comment = comment;
                 this.imageBase64 = imageBase64;
                 this.user_id = user_id;
+                this.username = username;
                 this.created_at = created_at;
             }
 

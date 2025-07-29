@@ -28,7 +28,6 @@ public class UserHTTPHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
 
 
-        // Checking for Bot
         String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
         if (!RateLimiter.isAllowed(ip)) {
             Utils.sendResponse(exchange, 429, gson.toJson(new ErrorResponseDto("Too many requests!")));
@@ -129,7 +128,7 @@ public class UserHTTPHandler implements HttpHandler {
 //            if (role == Role.BUYER && requestDto.getBank_info() != null) {
 //                Utils.sendResponse(exchange, 403, gson.toJson(new ErrorResponseDto("Buyer doesn't have bank info")));
 //                return;
-//            }
+//            }`
 
             User user = getUser(requestDto, role);
 
